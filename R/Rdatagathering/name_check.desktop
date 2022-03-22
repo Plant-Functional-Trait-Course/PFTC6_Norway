@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Scan name check
+Comment=Validate names of leaf scans
+Exec=/home/pi/svalbard/PFTC4_Svalbard/traits/Rdatagathering/run_filename_check.sh
+Icon=/home/pi/svalbard/PFTC4_Svalbard/traits/Rdatagathering/leaf_clip_art_thumb2.png
+Terminal=true
+Type=Application
