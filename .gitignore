@@ -19,6 +19,8 @@ clean_data/*
 *.xls
 *.xlsx
 
+!R/data_dic/data_description.xlsx
+
 #figures & output
 *.png
 *.html
@@ -28,6 +30,7 @@ clean_data/*
 *.md
 *2.bib
 *.ai
+*.iso
 
 # MacOS nonsense
 .DS_Store
