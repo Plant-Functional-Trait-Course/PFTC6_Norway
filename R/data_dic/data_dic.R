@@ -1,7 +1,9 @@
 # Make data dictionaries
 
 # load libraries
-source(file = "R/load_packages.R")
+library(tidyverse)
+library(readxl)
+library(writexl)
 
 # load clean data
 source("R/data_dic/download_clean_data.R")
