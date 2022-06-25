@@ -15,6 +15,7 @@
 #data (excludes everything in the folder data)
 data/*
 clean_data/*
+raw_data/*
 *.csv
 *.xls
 *.xlsx
@@ -31,6 +32,7 @@ clean_data/*
 *2.bib
 *.ai
 *.iso
+*.tif
 
 # MacOS nonsense
 .DS_Store
