@@ -15,9 +15,12 @@
 #data (excludes everything in the folder data)
 data/*
 clean_data/*
+raw_data/*
 *.csv
 *.xls
 *.xlsx
+
+!R/data_dic/data_description.xlsx
 
 #figures & output
 *.png
@@ -28,6 +31,9 @@ clean_data/*
 *.md
 *2.bib
 *.ai
+*.iso
+*.cdr
+*.tif
 
 # MacOS nonsense
 .DS_Store
