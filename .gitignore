@@ -16,6 +16,7 @@
 data/*
 clean_data/*
 raw_data/*
+stuff/*
 *.csv
 *.xls
 *.xlsx

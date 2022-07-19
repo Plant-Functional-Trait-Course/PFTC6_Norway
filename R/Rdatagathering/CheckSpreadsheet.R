@@ -3,21 +3,19 @@
 # Load libraries
 library(tidyverse)
 library(lubridate)
-library(readxl)
-library(assertr)
+library(validate)
 library(gridExtra)
 library(PFTCFunctions)
+library(googlesheets4)
 
 
 ### get all valid IDs (seed for PFTC6 is 49)
 uniqueIDs <- get_PFTC_envelope_codes(seed = 49, as.3.5 = FALSE)
 
 ### Read google sheet
-#Install the required package
+#Install the package if you haven't
 #install.packages("googlesheets4")
 
-#Load the required library
-library(googlesheets4)
 #Read google sheets data into R
 gs4_deauth()
 raw_traits <- read_sheet("https://docs.google.com/spreadsheets/d/1ncqbniu0NUzCfcNe2fOl6M2Yj-BeOEXcYlPZHwNiIbk/edit#gid=0")
@@ -27,68 +25,57 @@ raw_traits <- read_sheet("https://docs.google.com/spreadsheets/d/1ncqbniu0NUzCfc
 #mdat <- map_df(myfiles, function(n) read_excel(path = n, col_names = TRUE))
 
 
-# Checking data set
-nr_col <- 20
+# Set rules
+# rules
+rules <- validator(
 
-# data type
-characters <- c("ID", "siteID", "genus", "species", "experiment", "plot_ID", "remark")
-numerics <- c("day", "elevation_m_asl", "individual_nr", "leaf_nr", "plant_height_cm", "bulk_nr_leaves", "cut_cm", "wet_mass_g", "leaf_thickness_1_mm", "leaf_thickness_2_mm", "leaf_thickness_3_mm")
+  # check variable types
+  is.character(ID),
+  is.character(siteID),
+  is.character(genus),
+  is.character(species),
+  is.character(project),
+  is.character(experiment),
+  is.character(plotID),
+  is.character(remark),
 
-IDs <- uniqueIDs$hashcode
-days <- c(24, 25, 26, 27, 28, 29, 30, 31, 1, 2, 3, 4)
-siteIDs <- c("Vik", "Hog", "Joa", "Lia", "Ulv", "Lav", "Gud", "SkJ")
-elevations <- c(474, 700, 920, 1320, 1200)
-projects<- c("3D", "Incline", "Sean", "Drones")
-experiments <- c("gradient", "GC", "control", "OTC")
-plots <- c()
-individuals <- c(1:10)
-leafs <- c(1:10)
+  is.numeric(day),
+  is.numeric(elevation_m_asl),
+  is.numeric(individual_nr),
+  is.numeric(leaf_nr),
+  is.numeric(plant_height_cm),
+  is.numeric(bulk_nr_leaves),
+  is.numeric(cut_cm),
+  is.numeric(wet_mass_g),
+  is.numeric(leaf_thickness_1_mm),
+  is.numeric(leaf_thickness_2_mm),
+  is.numeric(leaf_thickness_3_mm),
+
+  # matching lists
+  ID %in% c(leaf_ID$hashcode), # unique ID
+  day %in% c(24, 25, 26, 27, 28, 29, 30, 31, 1, 2, 3, 4),
+  siteID %in% c("Vik", "Hog", "Joa", "Lia", "Ulv", "Lav", "Gud", "SkJ"),
+  elevation_m_asl %in% c(474, 700, 920, 1320, 1200),
+  projcet %in% c("3D", "Incline", "Sean", "Drones"),
+  experiment %in% c("gradient", "GC", "C", "control", "OTC"),
+  #plotID %in% c(),
+  individual_nr %in% c(1:10),
+  leaf_nr %in% c(1:10)
+  )
+
+out <- confront(raw_traits, rules)
+summary(out)
+
+plot(out)
 
 
-#dat <- raw_traits
-#### Function to test trait data ####
-CheckSpreadsheet <- function(dat){
 
-  out <- dat %>%
-    #chain_start() %>%
-    #filter(!is.na(ID)) %>%
-    verify(ncol(.) == nr_col, error_fun = error_append) %>% # check number of columns
+### Uniqueness
 
-    assert(is.character, characters, error_fun = error_append) %>%  # is a character
-    assert(is.numeric, numerics, error_fun = error_append) %>% # is numeric
-
-    assert(function(x) nchar(x)==7, ID) %>% # check length of ID
-    assert(in_set(IDs), ID) %>% # check if ID is valid
-    chain_end()
-
-    # Check if Variables only contain elements from lists defined above
-    assert(in_set(days), day, error_fun = error_report) %>%
-    assert(in_set(site.list), Site, error_fun = error_report) %>%
-    #assert(in_set(genus.list), Genus, error_fun = error_report) %>%
-    #assert(in_set(species.list), Species, error_fun = error_report) %>%
-    assert(in_set(elevation.list), Elevation, error_fun = error_report) %>%
-    #assert(in_set(project.list), Project, error_fun = error_report) %>%
-    assert(in_set(experiment.list), Experiment, error_fun = error_report) %>%
-    assert(in_set(plot.list), Plot, error_fun = error_report) %>%
-    assert(in_set(individual.list), Individual_nr, error_fun = error_report) %>%
-    assert(in_set(leaf.list), Leaf_nr, error_fun = error_report) %>%
-
-    # check values
-    verify(Wet_Mass_g > Dry_Mass_g, error_fun = error_report) %>%
-    assert(within_bounds(0, Inf), Wet_Mass_g, error_fun = error_report) %>%
-    assert(within_bounds(0, Inf), Dry_Mass_g, error_fun = error_report) %>%
-    assert(within_bounds(0, Inf), Leaf_Area_cm2, error_fun = error_report) %>%
-    assert(within_bounds(0, Inf), Leaf_Thickness_1_mm, error_fun = error_report) %>%
-    assert(within_bounds(0, Inf), Leaf_Thickness_2_mm, error_fun = error_report) %>%
-    assert(within_bounds(0, Inf), Leaf_Thickness_3_mm, error_fun = error_report) %>%
-
-  # Observation unique
-    group_by(ID) %>%
-    mutate(n = n()) %>%
-    ungroup() %>%
-    assert(in_set(1), n, error_fun = error_report)
-
-}
+unique_rule <- validator(is_unique(ID, siteID, genus, species, project, experiment, plotID, individual_nr, leaf_nr))
+out <- confront(raw_traits, unique_rule)
+summary(out)
+violating(raw_traits, out)
 
 
 
