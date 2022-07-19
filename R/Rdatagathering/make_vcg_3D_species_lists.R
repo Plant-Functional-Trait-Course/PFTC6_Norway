@@ -136,7 +136,6 @@ community |>
 
                         # expanded sampling (whole elev gradient)
                         "Achillea millefolium",
-                        "Agrostis capillaris",
                         "Campanula rotundifolia",
                         "Carex vaginata",
                         "Leontodon autumnalis"
@@ -149,6 +148,31 @@ community |>
 
 
 #### PLOT LEVEL SPECIES LISTS ####
+
+
+focus_species <- tibble(species = c(# Incline wishlist (alpine)
+  "Sibbaldia procumbens",
+  "Veronica alpina",
+  "Bistorta vivipara",
+  "Salix herbacea",
+  "Alchemilla alpina",
+  "Agrostis capillaris",
+  "Anthoxanthum odoratum",
+  "Carex bigelowii",
+  "Poa alpina",
+  "Thalictrum alpinum",
+  "Festuca rubra",
+
+  # other alpines
+  "Saussurea alpina",
+
+  # expanded sampling (whole elev gradient)
+  "Achillea millefolium",
+  "Campanula rotundifolia",
+  "Carex vaginata",
+  "Leontodon autumnalis"
+),
+focus = "*")
 
 
 vcg_plot_community <- tbl(con, "turf_community")  |>
@@ -176,7 +200,7 @@ vcg_plot_community <- tbl(con, "turf_community")  |>
          species != "NID.seedling") |>
   left_join(tbl(con, "taxon"), by = "species") |>
   select(siteID, blockID, turfID, species = species_name, cover) |>
-  mutate(warming = "ambient",
+  mutate(warming = "A",
          grazing = "C",
          Namount_kg_ha_y = 0) |>
   collect()
@@ -206,10 +230,16 @@ bind_rows(
   threeD = threeD_plot_community,
   .id = "experiment"
 ) |>
+  left_join(focus_species, by = "species") |>
+  mutate(siteID = factor(siteID, levels = c("Vikesland", "Hogsete", "Vik", "Joa", "Lia"))) |>
   group_by(turfID) |>
-  arrange(experiment, siteID, blockID, turfID, -cover) |>
+  arrange(siteID, experiment, blockID, turfID, -cover) |>
   mutate(cumsum = cumsum(cover)) |>
-  filter(cumsum <= 90) |> ungroup() |> count(experiment)
+
+  select(exp = experiment, siteID, blockID, turfID, W = warming, N = Namount_kg_ha_y, G = grazing, species, focus, cover, cumsum) |>
+
+  writexl::write_xlsx(path = "PFTC6_trait_sampling_list.xlsx")
+  #filter(cumsum <= 90) |> ungroup() |> count(experiment)
 
 
 
