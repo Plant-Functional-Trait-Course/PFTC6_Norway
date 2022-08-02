@@ -4,7 +4,7 @@
 
 
 #### LOAD LIBRARY
-devtools::install_github("richardjtelford/LeafArea")
+#devtools::install_github("richardjtelford/LeafArea")
 library(LeafArea)
 
 
@@ -44,6 +44,12 @@ output.folder <- "raw_data/output"
 
 # Run function
 LeafArea.raw <- plyr::ldply(list.of.files, loop.files)
+
+LeafArea.raw |>
+  mutate(ID = substr(ID, 1, 7)) |>
+  group_by(ID) |>
+  summarise(n = n(),
+            leaf_area = sum(LeafArea))
 
 # save data as csv
 dim(LeafArea.raw)
