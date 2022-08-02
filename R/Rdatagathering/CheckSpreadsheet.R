@@ -20,6 +20,9 @@ uniqueIDs <- get_PFTC_envelope_codes(seed = 49, as.3.5 = FALSE)
 gs4_deauth()
 raw_traits <- read_sheet("https://docs.google.com/spreadsheets/d/1ncqbniu0NUzCfcNe2fOl6M2Yj-BeOEXcYlPZHwNiIbk/edit#gid=0")
 
+dd <- readxl::read_excel(path = "raw_data/PFTC6_Norway_Leaf_traits_2022.xlsx")
+dd |> distinct(plotID)
+
 # for mulitiple excel files
 #myfiles <- dir(path = paste0("raw_data"), pattern = "xlsx", recursive = TRUE, full.names = TRUE)
 #mdat <- map_df(myfiles, function(n) read_excel(path = n, col_names = TRUE))
