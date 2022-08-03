@@ -41,8 +41,6 @@ raw_traits |>
   #thickness made numeric
 
 
-  summary(raw_traits)
-
 
   clean_traits<- raw_traits %>%
     mutate(leaf_thickness_1_mm = if_else(ID == "IKY0250", 0.207, leaf_thickness_1_mm),
