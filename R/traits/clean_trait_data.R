@@ -72,7 +72,7 @@ clean_traits <- clean_traits %>%
            year = 2022,
            month = if_else(day == 1, 8, 7),
            date = make_date(year, month, day),
-           elevation = case_when(siteID == "Ulv" ~  1208,
+           elevation_m_asl = case_when(siteID == "Ulv" ~  1208,
                                  siteID == "Hog" ~ 700,
                                  siteID == "Vik" ~ 469,
                                  siteID == "Gud" ~ 1213,
@@ -89,7 +89,7 @@ clean_traits <- clean_traits %>%
            leaf_thickness_3_mm = if_else(ID == "CHV2350", 0.198, leaf_thickness_3_mm),
            leaf_thickness_2_mm = as.numeric(leaf_thickness_2_mm))
 
-
+str(clean_traits)
 # Fix day and project which didnt change
 
 clean_traits <- clean_traits %>%
@@ -154,19 +154,72 @@ clean_traits <- clean_traits %>%
 
   #check for duplicate barcodes and make sure data is different
 
-  dups<-clean_traits[duplicated(clean_traits$ID), ]
+  dups <- clean_traits[duplicated(clean_traits$ID), ]
 
-  dupID<-as.vector(dups$ID)
+  dupID <- as.vector(dups$ID)
 
-  dup2x<-  clean_traits[clean_traits$ID %in% dupID, ]
+  dup2x <-  clean_traits[clean_traits$ID %in% dupID, ]
 
+  # Code to check if they are true duplicates
+
+  dup2x <- dup2x %>%
+    group_by(ID) %>%
+    mutate(true_dupe = as.integer(n_distinct(wet_mass_g) == 1))
+
+# 1 means is a dupe
+
+  real_dupes <- dup2x %>%
+    filter(true_dupe == 1)
+
+# Remove the duplicates
+  clean_traits2 <- clean_traits %>%
+    filter(!ID %in% real_dupes$ID)
+
+# Remove one row from the duplicates so they are unique
+
+  real_dupes <- real_dupes %>%
+    unique() %>%
+    drop_na(plotID) %>%
+    filter(leaf_thickness_3_mm!=0.281)
+
+# rebind the two together
+
+  clean_traits2 <- bind_rows(clean_traits2,real_dupes)
+
+  # 1 is still broken because it has an NA height
+  # fix it
+
+  clean_traits2 <- clean_traits2 %>%
+    filter(!(ID == "AFE7141" & is.na(wet_mass_g)))
+
+  # so the duplicate data has been removed but some different plants with the same ID remain
+
+
+  ### Comparing experiments and plotID
+
+  # N or C needs to have a number ID
+  # if not should have a code
+  # incline should be numbers
+
+clean_traits2 %>%
+    select(siteID,plotID,experiment) %>%
+    unique()
+
+  clean_traits2 <- clean_traits2 %>%
+    mutate(plotID = case_when(plotID =="B2" ~ 2,
+                              plotID =="B3" ~ 3,
+                              plotID =="BL5" ~ 5,
+                              plotID =="NA"~ NA_character_,
+                              TRUE ~ plotID)) # only easy ones done - more to do!
+
+
+
+  # #List of ID codes where the data is true duplicates:
+  # real_dups<-tibble(ID= c( "AFE7141", "APD9921", "BMT1443", "DUH2615",
+  #                          "EFN3512", "GKL3008", "HLT2732"))
 
   #List of ID codes where the data is true duplicates:
-  real_dups<-tibble(ID= c( "AFE7141", "ALZ2013", "APD9921", "BMT1443", "DUH2615",
-                           "EFN3512", "GKL3008", "HLT2732"))
 
-  #List of ID codes where the data is true duplicates:
-
-  not_real_dups<-tibble(ID= c("ACM3709", "AQK5961", "BNK8495", "BNN7822", "CTQ9841",
-                              "FUY4409", "HRT6861", "IGM2553"))
+  # not_real_dups<-tibble(ID= c("ACM3709", "AQK5961", "BNK8495", "BNN7822", "CTQ9841",
+  #                             "FUY4409", "HRT6861", "IGM2553"))
 
