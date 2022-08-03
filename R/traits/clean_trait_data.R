@@ -28,7 +28,8 @@ raw_leaf_area <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_area_2022.
 ### Data cleaning
 
 # Remove rows with just NA
-clean_traits <- raw_traits[rowSums(is.na(raw_traits)) != ncol(raw_traits), ]
+clean_traits <- raw_traits %>%
+                filter(if_any(everything(), ~ !is.na(.)))
 
 # Remove Seans data
 
