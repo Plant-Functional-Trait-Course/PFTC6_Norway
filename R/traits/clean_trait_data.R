@@ -25,6 +25,7 @@ raw_leaf_area <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_area_2022.
 
 
 
+
 # Data curation
 
 raw_traits |>
@@ -79,4 +80,21 @@ raw_traits |>
          ldmc = dry_mass_g / wet_mass_g)
 
 
+  #check for duplicate barcodes and make sure data is different
+
+  dups<-clean_traits[duplicated(clean_traits$ID), ]
+
+  dupID<-as.vector(dups$ID)
+
+  dup2x<-  clean_traits[clean_traits$ID %in% dupID, ]
+
+
+  #List of ID codes where the data is true duplicates:
+  real_dups<-tibble(ID= c( "AFE7141", "ALZ2013", "APD9921", "BMT1443", "DUH2615",
+                           "EFN3512", "GKL3008", "HLT2732"))
+
+  #List of ID codes where the data is true duplicates:
+
+  not_real_dups<-tibble(ID= c("ACM3709", "AQK5961", "BNK8495", "BNN7822", "CTQ9841",
+                              "FUY4409", "HRT6861", "IGM2553"))
 
