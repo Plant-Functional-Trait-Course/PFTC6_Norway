@@ -46,7 +46,7 @@ raw_traits |>
 
   # calculate average thickness, sla and ldmc
   # rename
-  select(wet_mass_total_g = wet_mass_g,
+  rename(wet_mass_total_g = wet_mass_g,
          leaf_area_total_cm2 = leaf_area_cm2,
          dry_mass_total_g = dry_mass_g,
          nr_leaves = bulk_nr_leaves) |>
