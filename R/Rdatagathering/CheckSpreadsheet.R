@@ -7,26 +7,32 @@ library(validate)
 library(gridExtra)
 library(PFTCFunctions)
 library(googlesheets4)
+#devtools::install_github("Between-the-Fjords/dataDownloader")
+library("dataDownloader")
+
+# download raw trait data from OSF
+get_file(node = "pk4bg",
+         file = "PFTC6_Norway_Leaf_traits_2022.xlsx",
+         path = "raw_data/traits/",
+         remote_path = "RawData/Traits")
 
 
 ### get all valid IDs (seed for PFTC6 is 49)
 uniqueIDs <- get_PFTC_envelope_codes(seed = 49, as.3.5 = FALSE)
 
-### Read google sheet
-#Install the package if you haven't
-#install.packages("googlesheets4")
+# ### Read google sheet
+# #Install the package if you haven't
+# #install.packages("googlesheets4")
+#
+# #Read google sheets data into R
+# gs4_deauth()
+# raw_traits <- read_sheet("https://docs.google.com/spreadsheets/d/1ncqbniu0NUzCfcNe2fOl6M2Yj-BeOEXcYlPZHwNiIbk/edit#gid=0")
 
-#Read google sheets data into R
-gs4_deauth()
-raw_traits <- read_sheet("https://docs.google.com/spreadsheets/d/1ncqbniu0NUzCfcNe2fOl6M2Yj-BeOEXcYlPZHwNiIbk/edit#gid=0")
+raw_traits <- readxl::read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.xlsx", sheet = "Data")
 
-dd <- readxl::read_excel(path = "raw_data/PFTC6_Norway_Leaf_traits_2022.xlsx")
-dd |> distinct(plotID)
 
-# for mulitiple excel files
-#myfiles <- dir(path = paste0("raw_data"), pattern = "xlsx", recursive = TRUE, full.names = TRUE)
-#mdat <- map_df(myfiles, function(n) read_excel(path = n, col_names = TRUE))
 
+#### DATA CLEANING ####
 
 # Set rules
 # rules
@@ -35,8 +41,8 @@ rules <- validator(
   # check variable types
   is.character(ID),
   is.character(siteID),
-  is.character(genus),
-  is.character(species),
+  is.character(taxon),
+  is.character(new_taxon),
   is.character(project),
   is.character(experiment),
   is.character(plotID),
@@ -45,10 +51,9 @@ rules <- validator(
   is.numeric(day),
   is.numeric(elevation_m_asl),
   is.numeric(individual_nr),
-  is.numeric(leaf_nr),
-  is.numeric(plant_height_cm),
+  is.numeric(plant_height),
   is.numeric(bulk_nr_leaves),
-  is.numeric(cut_cm),
+  is.numeric(length_cm),
   is.numeric(wet_mass_g),
   is.numeric(leaf_thickness_1_mm),
   is.numeric(leaf_thickness_2_mm),
@@ -62,8 +67,7 @@ rules <- validator(
   projcet %in% c("3D", "Incline", "Sean", "Drones"),
   experiment %in% c("gradient", "GC", "C", "control", "OTC"),
   #plotID %in% c(),
-  individual_nr %in% c(1:10),
-  leaf_nr %in% c(1:10)
+  individual_nr %in% c(1:10)
   )
 
 out <- confront(raw_traits, rules)
