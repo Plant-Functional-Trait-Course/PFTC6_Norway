@@ -45,6 +45,7 @@ output.folder <- "raw_data/output"
 # Run function
 LeafArea.raw <- plyr::ldply(list.of.files, loop.files)
 
+# calculate sums
 LeafArea.raw |>
   mutate(ID = substr(ID, 1, 7)) |>
   group_by(ID) |>
