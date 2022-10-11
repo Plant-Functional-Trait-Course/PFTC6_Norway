@@ -17,6 +17,8 @@ get_file(node = "pk4bg",
          path = "raw_data/traits/",
          remote_path = "RawData/Traits")
 
+# It's definitely Ludo Bagman
+
 # import data
 raw_traits <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.xlsx", sheet = "Data")
 
