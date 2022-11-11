@@ -333,13 +333,13 @@ write.csv(data_to_check,"PTFC_envelopes_to_check.csv")
 
 # first get in data from new_taxon col
 
-clean_traits$taxon <- ifelse(is.na(clean_traits$taxon), clean_traits$new_taxon, clean_traits$taxon)
-species <- unique(clean_traits$taxon)
+clean_traits3$taxon <- ifelse(is.na(clean_traits3$taxon), clean_traits3$new_taxon, clean_traits3$taxon)
+species <- unique(clean_traits3$taxon)
 species <- TNRS(species)
 
 # Now fix names
 
-clean_traits <- clean_traits %>%
+clean_traits3 <- clean_traits3 %>%
   mutate(remark = ifelse(taxon == "Festuca officinalis","was F. officinalis, changed to F. ovina, should most likely be correct",remark)) %>%
   mutate(taxon=str_replace_all(taxon, c("Salix herbaceae"="Salix herbacea",
                                         "Astragulus alpinus"="Astragalus alpinus",
@@ -357,10 +357,10 @@ clean_traits <- clean_traits %>%
 
 ####### join leaf area and dry mass data
 
-clean_traits2 <- left_join(clean_traits2, raw_leaf_area, by = "ID")
+clean_traits3 <- left_join(clean_traits3, raw_leaf_area, by = "ID")
 
 # Fix leaf area columns
-clean_traits2 <- clean_traits2 %>%
+clean_traits3 <- clean_traits3 %>%
   select(-X) %>%
   rename(number_leaf_fragments_scanned = n,
          wet_mass_total_g = wet_mass_g,
