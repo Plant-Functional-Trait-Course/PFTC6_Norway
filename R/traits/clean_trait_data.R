@@ -10,6 +10,8 @@ library(validate)
 library("dataDownloader")
 #devtools::install_version("TNRS")
 library(TNRS) # match taxa names
+#remotes::install_github("audhalbritter/dataDocumentation")
+library(dataDocumentation)
 
 # download raw trait data from OSF
 get_file(node = "pk4bg",
@@ -92,17 +94,17 @@ clean_traits2 <- clean_traits %>%
                                      siteID == "Lia" ~ 1290,
                                      siteID == "Skj" ~ 1088,
                                      siteID == "Joa" ~ 920),
-         experiment = ifelse(experiment == "NA", NA, experiment),
-         leaf_thickness_1_mm = if_else(ID == "IKY0250", 0.207, leaf_thickness_1_mm),
+         experiment = ifelse(experiment == "NA", NA_character_, experiment),
+         leaf_thickness_1_mm = if_else(ID == "IKY0250", 0.207, leaf_thickness_1_mm), # fix unit errors
          leaf_thickness_1_mm = if_else(ID == "DEV8302", 0.155, leaf_thickness_1_mm),
-         leaf_thickness_2_mm = if_else(ID == "CZW4480", "0.153", leaf_thickness_2_mm),
+         leaf_thickness_2_mm = if_else(ID == "CZW4480", "0.153", leaf_thickness_2_mm), # make correct string prior to conversion
          leaf_thickness_2_mm = if_else(ID == "DDI9716", "0.223", leaf_thickness_2_mm),
          leaf_thickness_2_mm = if_else(ID == "DEX5838", "0.185", leaf_thickness_2_mm),
          leaf_thickness_3_mm = if_else(ID == "CHV2350", 0.198, leaf_thickness_3_mm),
          leaf_thickness_2_mm = as.numeric(leaf_thickness_2_mm),
-         plant_height = ifelse(project == "Incline", plant_height/10,plant_height),
+         plant_height = ifelse(project == "Incline", plant_height/10,plant_height), # All incline plants were measured in mm, so convert to cm
          plant_height = ifelse(plant_height > 59, plant_height/10, plant_height)) %>% # fixing obviously missed decimals
-  filter(wet_mass_g < 10)
+  filter(wet_mass_g < 10) # Remove two impossible wet mass values
 
 # Fix day and project which didn't change
 # Remove Joa which must be Seans as comment is rest
@@ -202,9 +204,7 @@ clean_traits2 %>%
 # Comments have the plot ID for some of them - incorporate these and cross reference with Aud's metadata package
 # to make sure they're correct - as some are missing info
 
-#remotes::install_github("audhalbritter/dataDocumentation")
-library(dataDocumentation)
-
+# Use dataDocumentation package
 meta_data_3D <- create_threed_meta_data()
 # this can correct some of the plotID issues
 
