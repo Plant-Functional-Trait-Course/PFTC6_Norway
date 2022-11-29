@@ -26,7 +26,7 @@ raw_traits <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.x
 
 raw_dry_mass <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.xlsx", sheet = "DryMass")
 
-raw_leaf_area <- read.csv("raw_data/traits/leaf_area.csv")
+#raw_leaf_area <- read.csv("raw_data/traits/leaf_area.csv")
 
 
 ### Data cleaning ----
@@ -386,6 +386,7 @@ clean_traits3 <- clean_traits3 %>%
 
 # Some scans not there
 
+
 # Checking for outliers ####
 data <- clean_traits3
 # Libraries
@@ -479,4 +480,79 @@ for (species_ in species) {
 species
 species_plots[1] #Agrostis capillaris
 
-#####
+
+
+#_______________________________________________________________________________
+# NA removal and outlier detection by Joshua
+
+clean_traits3$false <- clean_traits3$plant_height/clean_traits3$wet_mass_g # a ratio of 1 or 0.1 points to a mistaken height value
+# height values drawn from Incline group fieldwork sheets
+clean_traits3[clean_traits3$ID == "BOU0176", "plant_height"] <- 8.1
+clean_traits3[clean_traits3$ID == "BDQ5475", "plant_height"] <- 5.3
+clean_traits3[clean_traits3$ID == "EDH3100", "plant_height"] <- 14.6
+
+# bulk number of leaves counted from leaf scans
+clean_traits3[clean_traits3$ID == "CHW9026", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "BHS3927", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "AQA6446", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "AIT4560", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "AIX4648", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "APO5292", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "AJB8204", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "CBX5036", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "APQ8072", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "BQG7481", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "BFI7437", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "CDE0818", "bulk_nr_leaves"] <- 2
+clean_traits3[clean_traits3$ID == "CON9328", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "DAK3110", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "CZY5489", "bulk_nr_leaves"] <- 3
+clean_traits3[clean_traits3$ID == "GPW1350", "bulk_nr_leaves"] <- 1
+clean_traits3[clean_traits3$ID == "AQK5961", "bulk_nr_leaves"] <- 1
+
+# there is a note that mistakenly says that leaf thickness should be 0.0325
+clean_traits3[clean_traits3$ID == "HWK3847", "leaf_thickness_3_mm"] <- 0.325
+
+# lines of code that generate the variance of leaf thickness values to find outliers
+thickness <-clean_traits3 %>% select(c(ID,leaf_thickness_1_mm,leaf_thickness_2_mm,leaf_thickness_3_mm)) %>%
+  pivot_longer(cols = c(leaf_thickness_1_mm,leaf_thickness_2_mm,leaf_thickness_3_mm), names_to = "measurement", values_to = "value")
+thickness <- aggregate(log(thickness$value), list(thickness$ID), FUN = var)
+thickness <- rename(thickness, ID = Group.1, thickness_var = x)
+clean_traits3 <- left_join(clean_traits3, thickness, by = "ID")
+
+# outlier values of ~ 1 magnitude have been changed to better reflect other measured values of the sample
+clean_traits3[clean_traits3$ID == "ICR7173", "leaf_thickness_2_mm"] <- 0.091
+clean_traits3[clean_traits3$ID == "FVU2190", "leaf_thickness_2_mm"] <- 0.038
+clean_traits3[clean_traits3$ID == "ESD7613", "leaf_thickness_1_mm"] <- 0.243
+clean_traits3[clean_traits3$ID == "ESV6901", "leaf_thickness_1_mm"] <- 0.247
+clean_traits3[clean_traits3$ID == "CJN0746", "leaf_thickness_2_mm"] <- 1.000
+clean_traits3[clean_traits3$ID == "CWC6486", "leaf_thickness_1_mm"] <- 0.265
+clean_traits3[clean_traits3$ID == "CCO1039", "leaf_thickness_1_mm"] <- 1.000
+clean_traits3[clean_traits3$ID == "EPR5076", "leaf_thickness_1_mm"] <- 0.236
+clean_traits3[clean_traits3$ID == "CXJ5628", "leaf_thickness_1_mm"] <- 0.098
+clean_traits3[clean_traits3$ID == "EQE2168", "leaf_thickness_1_mm"] <- 0.257
+clean_traits3[clean_traits3$ID == "HMZ3031", "leaf_thickness_1_mm"] <- 0.219
+clean_traits3[clean_traits3$ID == "GTE6076", "leaf_thickness_1_mm"] <- 0.170
+
+# function to count decimal places, as thickness measurements should only have a precision of .001 not .0001
+count_decimals = function(x) {
+  if (length(x) == 0) return(numeric())
+  x_nchr = x %>% abs() %>% as.character() %>% nchar() %>% as.numeric()
+  x_int = floor(x) %>% abs() %>% nchar()
+  x_nchr = x_nchr - 1 - x_int
+  x_nchr[x_nchr < 0] = 0
+  x_nchr}
+
+clean_traits3$dec_1 <- NA
+clean_traits3$dec_2 <- NA
+clean_traits3$dec_3 <- NA
+for(i in 1:nrow(clean_traits3)) {clean_traits3$dec_1[i] <- count_decimals(clean_traits3$leaf_thickness_1_mm[i])}
+for(i in 1:nrow(clean_traits3)) {clean_traits3$dec_2[i] <- count_decimals(clean_traits3$leaf_thickness_2_mm[i])}
+for(i in 1:nrow(clean_traits3)) {clean_traits3$dec_3[i] <- count_decimals(clean_traits3$leaf_thickness_3_mm[i])}
+
+
+rm(thickness)
+clean_traits3 <- select(clean_traits3, -c(false, thickness_var, dec_1, dec_2, dec_3))
+
+#_______________________________________________________________________________
+
