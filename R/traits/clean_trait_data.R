@@ -1,17 +1,7 @@
 ### Clean trait data
 
-### Load libraries
-library(tidyverse)
-library(lubridate)
-library(readxl)
-library(validate)
-#library(PFTCFunctions)
-#devtools::install_github("Between-the-Fjords/dataDownloader")
-library("dataDownloader")
-#devtools::install_version("TNRS")
-library(TNRS) # match taxa names
-#remotes::install_github("audhalbritter/dataDocumentation")
-library(dataDocumentation)
+#load libraries
+source("R/load_libraries.R")
 
 # download raw trait data from OSF
 get_file(node = "pk4bg",
@@ -20,30 +10,18 @@ get_file(node = "pk4bg",
          remote_path = "RawData/Traits")
 
 
-# import data
-
-raw_traits <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.xlsx", sheet = "Data")
-
-raw_dry_mass <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.xlsx", sheet = "DryMass")
-
-#raw_leaf_area <- read.csv("raw_data/traits/leaf_area.csv")
+# import trait data
+raw_traits <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.xlsx", sheet = "Data", na = c("", "NA"))
 
 
 ### Data cleaning ----
 
-# Remove rows with just NA
-clean_traits <- raw_traits %>%
-  filter(if_any(everything(), ~ !is.na(.)))
-
-# Remove Seans data
-clean_traits <- clean_traits %>%
-  filter(is.na(project)|project!="Sean") #
-
-# Current combinations of experiment, siteID and day
-clean_traits %>%
-  mutate(siteID = if_else(siteID == "vik", "Vik", siteID)) %>%
-  select(siteID,experiment,day,project,elevation_m_asl) %>%
-  unique()
+# Check combinations of experiment, siteID and day
+# clean_traits %>%
+#   select(siteID,experiment,day,project,elevation_m_asl) %>%
+#   unique() |>
+#   arrange(project, siteID, day, experiment) |>
+#   print(n = Inf)
 
 # Incline sites are Ulv, Gud, Skj
 # SO thats an easy correction if we assume siteID is correct?
@@ -51,17 +29,26 @@ clean_traits %>%
 # But luckily - only Incline added elevation to their write up?
 # SO convert based on this first
 
-clean_traits <- clean_traits %>%
+clean_traits <- raw_traits %>%
+  # remove unused column
+  select(-length_cm) |>
+  # Remove rows with just NA
+  filter(if_any(everything(), ~ !is.na(.))) |>
+
+  # fix project
+  mutate(project = case_when(ID %in% c("AGP9286", "HRQ1892") ~ "3D",
+                             ID %in% c("CJC4018", "CSV2097", "EDH3100") ~ "Incline",
+                             ID %in% c("CGE9632", "IBW5191") ~ "Sean",
+                             TRUE ~ project)) |>
+
+  # Remove Seans data
+  filter(is.na(project)|project!="Sean") |>
+
+  # fix siteID
   mutate(siteID = if_else(siteID == "vik", "Vik", siteID),
-         siteID = if_else(project == "Incline" & siteID == "Hog", "Ulv", siteID))
+         siteID = if_else(ID == "BIE2833", "Ulv", siteID)) |>
 
-# Fix days, month, year, date
-# Sort out project and siteID
-# Add elevation
-# Fix experiment column when obviously wrong
-# Clean leaf thickness data which is wrong
-
-clean_traits2 <- clean_traits %>%
+  # Fix days and siteID
   mutate(day = case_when( siteID == "Ulv" & project == "Incline" ~ 24,
                           siteID == "Hog" & project == "3D" ~ 24,
                           siteID == "Vik" & project == "3D" ~ 26,
@@ -85,132 +72,108 @@ clean_traits2 <- clean_traits %>%
                              day == 28 & siteID == "Lia" ~ "3D",
                              day == 30 & siteID == "Skj" ~ "Incline",
                              day == 1 & siteID == "Joa" ~ "3D",
-                             TRUE ~ project),
-         year = 2022,
+                             TRUE ~ project)) |>
+
+  # Fix month, year, date
+  mutate(year = 2022,
          month = if_else(day == 1, 8, 7),
          date = make_date(year, month, day),
+
+         # Add elevation
          elevation_m_asl = case_when(siteID == "Ulv" ~  1208,
                                      siteID == "Hog" ~ 700,
                                      siteID == "Vik" ~ 469,
                                      siteID == "Gud" ~ 1213,
                                      siteID == "Lia" ~ 1290,
                                      siteID == "Skj" ~ 1088,
-                                     siteID == "Joa" ~ 920),
-         experiment = ifelse(experiment == "NA", NA_character_, experiment),
-         leaf_thickness_1_mm = if_else(ID == "IKY0250", 0.207, leaf_thickness_1_mm), # fix unit errors
-         leaf_thickness_1_mm = if_else(ID == "DEV8302", 0.155, leaf_thickness_1_mm),
-         leaf_thickness_2_mm = if_else(ID == "CZW4480", "0.153", leaf_thickness_2_mm), # make correct string prior to conversion
-         leaf_thickness_2_mm = if_else(ID == "DDI9716", "0.223", leaf_thickness_2_mm),
-         leaf_thickness_2_mm = if_else(ID == "DEX5838", "0.185", leaf_thickness_2_mm),
-         leaf_thickness_3_mm = if_else(ID == "CHV2350", 0.198, leaf_thickness_3_mm),
-         leaf_thickness_2_mm = as.numeric(leaf_thickness_2_mm),
-         plant_height = ifelse(project == "Incline", plant_height/10,plant_height), # All incline plants were measured in mm, so convert to cm
-         plant_height = ifelse(plant_height > 59, plant_height/10, plant_height)) %>% # fixing obviously missed decimals
-  filter(wet_mass_g < 10) # Remove two impossible wet mass values
+                                     siteID == "Joa" ~ 920)) |>
 
-# Fix day and project which didn't change
-# Remove Joa which must be Seans as comment is rest
+  # Fix experiment column when obviously wrong
+  mutate(experiment = ifelse(experiment == "NA", NA_character_, experiment)) |>
 
-clean_traits2 <- clean_traits2 %>%
-  mutate(day = ifelse(ID == "EDH3100", 27, day),
-         project = ifelse(ID == "EDH3100", "Incline", project)) %>%
-  filter(ID != "CGE9632")
+  # Clean leaf thickness data which is wrong (LT > 150)
+  mutate( leaf_thickness_1_mm = if_else(ID == "IKY0250", 0.207, leaf_thickness_1_mm), # fix unit errors
+          leaf_thickness_1_mm = if_else(ID == "DEV8302", 0.155, leaf_thickness_1_mm),
+          leaf_thickness_2_mm = if_else(ID == "DDI9716", 0.223, leaf_thickness_2_mm),
+          leaf_thickness_2_mm = if_else(ID == "DEX5838", 0.185, leaf_thickness_2_mm),
+          leaf_thickness_3_mm = if_else(ID == "CHV2350", 0.198, leaf_thickness_3_mm)) |>
+
+  # fix plant height
+  # fix wrong value .14.8, which gets converted to NA in data import
+  mutate(plant_height = if_else(ID == "EYC5540", 14.8, plant_height),
+         # All incline plants were measured in mm, so convert to cm
+         plant_height = ifelse(project == "Incline", plant_height/10, plant_height),
+         # fix some leaves that were measured in mm
+         plant_height = ifelse(plant_height > 59, plant_height/10, plant_height),
+         # fix typos
+         plant_height = case_when(ID == "GDI1096" ~ 0.0422,
+                                  ID == "CWQ2942" ~ 0.1312,
+                                  ID == "CUC2352" ~ 0.1232))
 
 # Check experiments column
 # Experiment should all be C or OTC for Incline
-clean_traits2 %>%
-  select(siteID,experiment,day,project,elevation_m_asl) %>%
-  unique()
+# clean_traits %>%
+#   select(siteID,experiment,day,project,elevation_m_asl) %>%
+#   arrange(project, experiment, siteID) |>
+#   unique()
 
-# Have 4 entries without/ wrong experiment for incline
-# And missing site IDs
-
-missing_incline_exp <- clean_traits2 %>%
-  filter((siteID == "Ulv" | siteID == "Gud" |siteID == "Skj" )) %>%
-  filter(is.na(experiment) | experiment =="N")
-
-missing_siteID <-clean_traits2 %>%
-  filter(is.na(siteID))
-
+# Have 2 entries without experiment or siteID (the rest are wrong species and can be deleted)
+# clean_traits %>%
+#   filter(is.na(siteID) | is.na(experiment) & project == "Incline") |> as.data.frame()
 
 # Check for the incline experiments which are missing
-clean_traits2 %>%
-  filter( siteID == "Gud") %>%
-  filter(taxon == "Campanula rotundifolia") %>%
-  group_by(siteID,taxon,plotID,experiment,individual_nr) %>%
-  tally()
+### PROBABLY OTC 1
+# clean_traits %>%
+#   filter( siteID == "Gud") %>%
+#   filter(taxon == "Campanula rotundifolia") %>%
+#   group_by(siteID,taxon,plotID,experiment,individual_nr) %>%
+#   tally()
 
-# This is likely OTC as OTC in plot 3.0 is also missing individual nr 1 - which is should have, so change both later on
-clean_traits2 %>%
-  filter( siteID == "Ulv") %>%
-  filter(taxon == "Anthoxanthum odoratum") %>%
-  group_by(siteID,taxon,plotID,experiment,individual_nr) %>%
-  tally()
 
-# Don't think this next one can be inferred from individual number - could be either
-clean_traits2 %>%
-  filter( siteID == "Skj") %>%
-  filter(taxon == "Bistorta vivipara") %>%
-  group_by(siteID,taxon,plotID,experiment,individual_nr) %>%
-  tally()
+### Duplicates, missing plot IDs and Individual Number
 
-# This next one has to be OTC
-clean_traits2 %>%
-  filter( siteID == "Skj") %>%
-  filter(taxon == "Thalictrum alpinum") %>%
-  group_by(siteID,taxon,plotID,experiment,individual_nr) %>%
-  tally()
-
-# Now Site IDs
-
-# This one has to be 3D
-clean_traits2 %>%
-  filter(day == 24) %>%
-  filter(taxon == "Carex vaginata") %>%
-  group_by(siteID,taxon,plotID,experiment,individual_nr,project) %>%
-  tally()
-
-# Fix what the experiments and Site IDs likely are
-
-clean_traits2 <- clean_traits2 %>%
-  mutate(experiment = ifelse(ID == "DJD3630", "C", experiment),
-         experiment = ifelse(ID == "AGP9286", "OTC", experiment),
-         individual_nr = ifelse(ID == "AGP9286", 1, individual_nr),
-         experiment = ifelse(ID == "GOX6736", "OTC", experiment),
-         siteID = ifelse(ID == "CEW4486", "Hog", siteID),
-         project = ifelse(ID == "CEW4486", "3D", project),
-         elevation_m_asl = ifelse(ID == "CEW4486", 700, elevation_m_asl),
-         siteID = ifelse(ID == "APJ1597", "Hog", siteID),
-         project = ifelse(ID == "APJ1597", "3D", project),
-         elevation_m_asl = ifelse(ID == "APJ1597", 700, elevation_m_asl),
-         siteID = ifelse(ID == "BNK8495" & project =="Incline", "Ulv", siteID),
-         elevation_m_asl = ifelse(ID == "BNK8495" & project =="Incline", 1208, elevation_m_asl),
-         day = ifelse(ID == "BNK8495" & project =="Incline", 24, day))
-
-# Now check for missing plot IDs/Individual Number
-unique(clean_traits2$plotID)
+#unique(clean_traits$plotID)
 # Make plot ID which is "NA" NA
 # N or C needs to have a number ID
 # if not should have a code
 # incline should be numbers
 
-clean_traits2 <- clean_traits2 %>%
-  mutate(plotID = case_when(plotID =="B2" ~ "2.0",
-                            plotID =="B3" ~ "3.0",
-                            plotID =="BL5" ~ "5.0",
-                            plotID =="NA"~ NA_character_,
-                            TRUE ~ plotID))
-
-clean_traits2 %>%
-  filter(is.na(plotID))
+# clean_traits %>%
+#   filter(is.na(plotID))
 # Comments have the plot ID for some of them - incorporate these and cross reference with Aud's metadata package
 # to make sure they're correct - as some are missing info
+
+# fix almost duplicate
+# clean_traits |>
+#   group_by(ID) |>
+#   mutate(n = n()) |> filter(n > 1) |> View()
+
+## Check individual numbers
+# na's
+# clean_traits %>%
+#   filter(is.na(individual_nr)) |>
+#   as.data.frame()
+
+# duplicate ind nr
+# clean_traits |>
+#   group_by(siteID, taxon, project, experiment, plotID, individual_nr) |>
+#   mutate(n = n()) |> filter(n > 1) |>
+#   select(ID, siteID, taxon, experiment, plotID, individual_nr) |>
+#   arrange(siteID, taxon, experiment, plotID, individual_nr)
 
 # Use dataDocumentation package
 meta_data_3D <- create_threed_meta_data()
 # this can correct some of the plotID issues
 
-clean_traits2 <- clean_traits2 %>%
+
+clean_traits <- clean_traits %>%
+
+  ## PlotID
+  mutate(plotID = case_when(plotID =="B2" ~ "2.0",
+                            plotID =="B3" ~ "3.0",
+                            plotID =="BL5" ~ "5.0",
+                            plotID =="NA"~ NA_character_,
+                            TRUE ~ plotID)) |>
   mutate(plotID = case_when(remark == "1 85 WN1C 167" ~ "1-85 WN1C 162", # corrected to metadata
                             remark == "5-57AN8C 57" ~ "8-57AN8C 57", # says 5-57 but no 5-57 in metadata so changed to 8
                             remark == "Plot ID on envelope is 10-75-AN3N-79" ~ "10-79 AN2N 79", # has to be this one
@@ -218,144 +181,143 @@ clean_traits2 <- clean_traits2 %>%
                             remark == "Plot ID: 7-109AN3C 109" ~ "4-109AN3C 109", # corrected number
                             remark == "Plot ID: 4-105AN3C 109" ~ "4-109AN3C 109",
                             TRUE ~ plotID),
-         plotID = ifelse(ID == "CIO0085","2.0",plotID))
+         plotID = ifelse(ID == "CIO0085","2.0",plotID)) |>
+  # remove wrong plants with no trait measurements
+  mutate(remark = tolower(remark)) |>
+  filter(!grepl("wrong species", remark)) |>
 
-# Think these 5 can't be corrected without looking at the envelopes
-clean_traits2 %>%
-  filter(is.na(plotID))
+  ## DUPLICATES
+  # remove real duplicates
+  distinct() |>
+  # remove almost real duplicates
+  filter(!(ID == "CTQ9841" & remark == "delete, duplicate with wrong values" & !is.na(remark))) |>
+  filter(!(ID == "APD9921" & leaf_thickness_3_mm == "0.281")) |>
+  filter(!(ID == "AFE7141" & is.na(bulk_nr_leaves))) |>
+  filter(!(ID == "DUH2615" & individual_nr == 1)) |>
 
-# Individual numbers
-miss_ind_nr <- clean_traits2 %>%
-  filter(is.na(individual_nr))
-
-# Correct where Joshua noted
-
-clean_traits2 <- clean_traits2 %>%
-  mutate(individual_nr = ifelse(ID == "EJR3255",2,individual_nr),
-         individual_nr = ifelse(ID == "DSE5104",3,individual_nr))
-
-# Way to find them could be to group them by plot etc. and see what's missing
-check_ind_nr <- clean_traits2 %>%
-  filter(siteID %in% miss_ind_nr$siteID) %>%
-  filter(plotID %in% miss_ind_nr$plotID) %>%
-  filter(taxon %in% miss_ind_nr$taxon) %>%
-  arrange(siteID,taxon,plotID,individual_nr)
-# honestly not sure how important having these is though - I think some were missed from first day of 3D work in Hog
-
-
-# Can use Aud's package for precise experiment info for 3D when needed
-
-### Clean duplicates ----
-
-# Check for duplicate barcodes and make sure data is different
-
-duplicated_IDs <- clean_traits2[duplicated(clean_traits2$ID), ]
-
-duplicate_subset <- clean_traits2[clean_traits2$ID %in% duplicated_IDs$ID, ]
-
-# Code to check if they are true duplicates
-
-duplicate_subset <- duplicate_subset %>%
-  group_by(ID) %>%
-  mutate(true_dupe_wet_mass = as.integer(n_distinct(wet_mass_g) == 1),
-         true_dupe_wet_mass = ifelse(true_dupe_wet_mass==1, "Yes","No"))
-
-# Remove true duplicates then manually check if the entries have two leaves in the leaf scan files
-# (need to remove only one of these duplicates later - using slice)
-
-duplicate_subset_check <- duplicate_subset %>%
-  filter(true_dupe_wet_mass != "Yes")
-
-unique(duplicate_subset_check$ID)
-
-# AQK5961 - only one leaf scan - looks like correct species (grass anyway)
-# CTQ9841 - only one leaf scan (is a grass)
-# BNN7822 - One leaf scan in 2022/07/27 folder - looks like Potentilla erecta
-#  Other leaf scan in 22/07/25 they are the same scan
-# But duplicate in data is Agrostis... - check envelope - agrostis got the wrong code?
-# BNK8495 - only one leaf scan - looks like Potentilla erecta not leontodon as other dupe says
-# Two ACM3709 - both are the same scan, is Alchemilla alpina not Nardus as other dupe says
-# FUY4409 - one scan is Alchemilla alpina - not Bistorta vivipara as the other dupe says
-# HRT6861 - one scan is Trifolium repens not leontodon
-# IGM2553 - one scan looks like Anthoxanthum not Avenella
-
-# So two of these are the same species with different measurements, the rest have wrong species
-# associated with the scan
-
-
-# Remove all duplicates from main dataset - to let others be re-added
-clean_traits3 <- clean_traits2 %>%
-  filter(!ID %in% duplicate_subset$ID)
-
-# Remove one row from the duplicates so they are unique
-# This deals with the true duplicates
-
-duplicate_subset <- duplicate_subset %>%
-  unique() %>%
-  filter(leaf_thickness_3_mm!=0.281)# because this value differs slightly and messes with unique
-
-# Rebind the two together
-
-clean_traits3 <- bind_rows(clean_traits3,duplicate_subset)
-
-# so the duplicate data has been removed but some different plants with the same ID remain
-
-### Checking for duplicates in dry mass
-
-# Download from google doc
-library(googlesheets4)
-dry_mass_so_far <-  read_sheet("https://docs.google.com/spreadsheets/d/1ncqbniu0NUzCfcNe2fOl6M2Yj-BeOEXcYlPZHwNiIbk/edit#gid=410051704", sheet=2)
-
-str(dry_mass_so_far)
-
-dry_mass_so_far[duplicated(dry_mass_so_far$ID), ]
-# One duplicate entry so far - seems to be a true duplicate
-
-## Dataframe with all envelopes to check...
-
-duplicate_subset2 <- duplicate_subset %>%
-  filter(true_dupe_wet_mass !="Yes") %>%
-  mutate(problem = "duplicate_ID")
-
-miss_plotID <- clean_traits2 %>%
-  filter(is.na(plotID)) %>%
-  mutate(problem = "miss_plotID")
-
-miss_expt_incline <- clean_traits2 %>%
-  filter((siteID == "Ulv" | siteID == "Gud" |siteID == "Skj" )) %>%
-  filter(is.na(experiment) | experiment =="N")
-
-miss_expt_incline <- miss_expt_incline %>%
-  mutate(problem = "miss_experiment")
-
-data_to_check <- rbind(duplicate_subset2,miss_plotID,miss_expt_incline)
-write.csv(data_to_check,"PTFC_envelopes_to_check.csv")
+  ## Long and ugly list to correct ind nr
+  mutate(individual_nr = case_when(ID == "APQ8072" ~ 5,
+                                   ID == "BEI6014" ~ 4,
+                                   ID == "CTM2082" ~ 1,
+                                   ID == "BMT1443" ~ 2,
+                                   ID == "AGG5788" ~ 4,
+                                   ID == "CRS5764" ~ 4,
+                                   ID == "CQD6658" ~ 5,
+                                   ID == "CYH5232" ~ 3,
+                                   ID == "CPL3980" ~ 6,
+                                   ID == "CUR3983" ~ 3,
+                                   ID == "DZC2489" ~ 4,
+                                   ID == "DMR2654" ~ 5,
+                                   ID == "DHR0146" ~ 6,
+                                   ID == "DSM5404" ~ 5,
+                                   ID == "DIJ8969" ~ 6,
+                                   ID == "DSI7474" ~ 7,
+                                   ID == "EHV4649" ~ 5,
+                                   ID == "EHE3636" ~ 4,
+                                   ID == "DTQ6176" ~ 4,
+                                   ID == "DLV4976" ~ 4,
+                                   ID == "DLB9991" ~ 5,
+                                   ID == "EKY3708" ~ 5,
+                                   ID == "EKX6404" ~ 6,
+                                   ID == "EIP7539" ~ 4,
+                                   ID == "DIK4930" ~ 2,
+                                   ID == "BQW6041" ~ 2,
+                                   ID == "EJL3434" ~ 4,
+                                   ID == "EDS0348" ~ 5,
+                                   ID == "DVZ2676" ~ 6,
+                                   ID == "EDU0323" ~ 3,
+                                   ID == "DWJ1146" ~ 4,
+                                   ID == "EJF0038" ~ 5,
+                                   ID == "DLF9268" ~ 6,
+                                   ID == "DHE6369" ~ 4,
+                                   ID == "BRK2754" ~ 6,
+                                   ID == "EGK3307" ~ 2,
+                                   ID == "BRY2565" ~ 2,
+                                   ID == "DSC4388" ~ 4,
+                                   ID == "DKT9944" ~ 5,
+                                   ID == "BRQ6790" ~ 2,
+                                   ID == "DSZ2667" ~ 4,
+                                   ID == "EQT1079" ~ 6,
+                                   ID == "HMG5583" ~ 2,
+                                   ID == "GDI1096" ~ 6,
+                                   ID == "HSU7673" ~ 4,
+                                   ID == "ERO0676" ~ 2,
+                                   ID == "IFE5070" ~ 4,
+                                   ID == "IKL3299" ~ 6,
+                                   ID == "HLH7856" ~ 3,
+                                   ID == "GFG1251" ~ 2,
+                                   ID == "EOW0861" ~ 5,
+                                   ID == "IIP7429" ~ 4,
+                                   ID == "GWO3443" ~ 2,
+                                   ID == "GTC8484" ~ 1,
+                                   ID == "HCE4621" ~ 3,
+                                   ID == "EQG2060" ~ 4,
+                                   ID == "DJQ2908" ~ 1,
+                                   ID == "CUV4540" ~ 2,
+                                   ID == "EJR3255" ~ 2,
+                                   ID == "DSE5104" ~ 3,
+                                   ID == "GQW0555" ~ 3,
+                                   ID == "INJ6310" ~ 1,
+                                   TRUE ~ individual_nr))
 
 ### Clean taxa names ----
 
 # first get in data from new_taxon col
 
-clean_traits3$taxon <- ifelse(is.na(clean_traits3$taxon), clean_traits3$new_taxon, clean_traits3$taxon)
-species <- unique(clean_traits3$taxon)
-species <- TNRS(species)
+clean_traits <- clean_traits |>
+  mutate(taxon = if_else(is.na(taxon), new_taxon, taxon))
 
-# Now fix names
+# use TNRS package to find correct names
+# species <- unique(clean_traits$taxon)
+# tnrs_species_check <- TNRS(species)
 
-clean_traits3 <- clean_traits3 %>%
-  mutate(remark = ifelse(taxon == "Festuca officinalis","was F. officinalis, changed to F. ovina, should most likely be correct",remark)) %>%
-  mutate(taxon=str_replace_all(taxon, c("Salix herbaceae"="Salix herbacea",
-                                        "Astragulus alpinus"="Astragalus alpinus",
-                                        "Oxyna diggna"="Oxyria digyna",
-                                        "Alchemilla spp"="Alchemilla sp",
-                                        "Achemilla sp"="Alchemilla sp",
-                                        "Achemilla sp."="Alchemilla sp",
-                                        "Alchemilla sp."="Alchemilla sp",
-                                        "Carex sp."="Carex sp",
-                                        "Festuca officinalis"="Festuca ovina", # most likely F. ovina
-                                        "Astralagulus sp."="Astragalus alpinus",
-                                        "Geranium sylvatica"="Geranium sylvaticum"
-  ))) %>%
+# Now fix species names
+clean_traits <- clean_traits %>%
+  mutate(remark = if_else(taxon == "Festuca officinalis", "Taxon was Festuca officinalis, changed to F. ovina after checking scan", remark)) %>%
+  mutate(taxon = str_replace_all(taxon,
+                                 c("Salix herbaceae" = "Salix herbacea",
+                                   "Astragulus alpinus" = "Astragalus alpinus",
+                                   "Oxyna diggna" = "Oxyria digyna",
+                                   "Alchemilla spp" = "Alchemilla sp",
+                                   "Achemilla sp" = "Alchemilla sp",
+                                   "Achemilla sp." = "Alchemilla sp",
+                                   "Alchemilla sp." = "Alchemilla sp",
+                                   "Carex sp." = "Carex sp",
+                                   "Festuca officinalis" = "Festuca ovina",
+                                   "Astralagulus sp." = "Astragalus alpinus",
+                                   "Geranium sylvatica" = "Geranium sylvaticum"))) %>%
   select(-new_taxon)
+
+
+### PROBLEMS
+# DJD3630 missing experiment -> probably C, need to fix plotID -> need to find out if 4 inds in here
+clean_traits |>
+  filter(siteID == "Gud", taxon == "Campanula rotundifolia") |>
+  arrange(plotID, experiment, individual_nr) |>
+  as.data.frame()
+# DLL3549: missing plotID, maybe 6 -> find out if this one exists
+clean_traits |>
+  filter(siteID == "Gud", taxon == "Poa alpina", experiment == "OTC") |>
+  arrange(plotID, individual_nr) |>
+  as.data.frame()
+#EVU9278 missing plotID and ind nr, could be 1-3 WN1C 85, because is missing ind 3
+clean_traits |>
+  filter(siteID == "Joa", taxon == "Sibbaldia procumbens") |>
+  arrange(plotID, individual_nr) |>
+  as.data.frame()
+#EXQ7925 difficult, could be one of those 1-88 AN1N 88, 4-29 WN3C 106
+clean_traits |>
+  filter(siteID == "Joa", taxon == "Festuca rubra") |>
+  arrange(plotID, individual_nr) |> View()
+# HIU3378 dry mass exists, so probably not entered
+# Can use Aud's package for precise experiment info for 3D when needed
+
+
+
+
+### source dry mass and leaf area
+source("R/traits/clean_dry_mass_and_area.R")
+
 
 ####### join leaf area and dry mass data
 
@@ -385,6 +347,7 @@ clean_traits3 <- clean_traits3 %>%
   mutate(sla_cm2_g = leaf_area_cm2 / wet_mass_g)
 
 # Some scans not there
+
 
 
 # Checking for outliers ####
