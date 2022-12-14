@@ -3,57 +3,37 @@
 # Load libraries
 library(tidyverse)
 library(readxl)
-library(writexl)
-
-# Functions
-# total DW if combined within groups
-DWfilterTotal <- function(DataSet, logical){
-  DataSet %>%
-    filter(minimum_chemTraitDW == logical) %>%
-    group_by(project, siteID, experiment, taxon) %>%
-    summarise(sumDW = sum(dry_mass))
-}
-# Total count of DW's within groups
-DWfilterCount <- function(DataSet, logical){
-  DataSet %>%
-    filter(minimum_chemTraitDW == logical) %>%
-    group_by(project, siteID, experiment, taxon) %>%
-    summarise(amount = n())
-}
 
 # import data
+# Here I have saved the cleaned trait data into two files and then I recombine them in R again to calculate how many samples need to be merged
 dry_mass <- read_excel(path = "clean_data/traits/PFTC6_Norway_traits_DW_clean_2022.xlsx")
-
 cleaned_traits <- read_excel(path = "clean_data/traits/PFTC6_Norway_traits_clean_2022.xlsx")
 
-
-# Minimum dry mass in g
+# Minimum dry mass needed in g
 minDW = 0.03
 
-# Check each value if enough
+# Check for each value if enough material
 dry_mass_min <- dry_mass %>%
   mutate(minimum_chemTraitDW = if_else(dry_mass >= minDW, T, F))
 
-
-# Read the cleaned data file or add this code snippet to the cleaning file after cleaning. For now just using the clean_trait_data.R script and having the values loaded and cleaned from there.
+# combine DW data and cleaned trait data
 clean_traits_DW <- left_join(cleaned_traits, dry_mass_min, by = "ID")
 
-# Check if there is too little material if the sample can be merged with another sample from the same site, treatment, and plot
+# Check if there is too little material if the sample can be merged with another sample from the same project, site, treatment, and plot
 
+# Small samples
+# Total DW when all combined
 DW_small.1 <- clean_traits_DW %>%
   filter(minimum_chemTraitDW==F) %>%
   group_by(project, siteID, experiment, taxon) %>%
   summarise(sumS = sum(dry_mass))
+# number of samples below the threshold
 DW_small.2 <- clean_traits_DW %>%
   filter(minimum_chemTraitDW==F) %>%
   group_by(project, siteID, experiment, taxon) %>%
   summarise(amountS = n())
-DW_small <- left_join(DW_small.1,DW_small.2, by =c("project", "siteID", "experiment", "taxon"))
-DW_small <- DW_small %>%
-  add_column(merges_amount = DW_small$sumS / minDW) %>%
-  mutate(merges_amount = trunc(merges_amount))
 
-# Not needed.
+# How much material and how many samples are above the threshold
 DW_big.1 <- clean_traits_DW %>%
   filter(minimum_chemTraitDW==T) %>%
   group_by(project, siteID, experiment, taxon) %>%
@@ -62,25 +42,12 @@ DW_big.2 <- clean_traits_DW %>%
   filter(minimum_chemTraitDW==T) %>%
   group_by(project, siteID, experiment, taxon) %>%
   summarise(amountB = n())
-DW_big <- left_join(DW_big.1,DW_big.2, by =c("project", "siteID", "experiment", "taxon"))
 
-DW_both <- left_join(DW_big,DW_small, by =c("project", "siteID", "experiment", "taxon"))
-DW_both <- DW_both %>%
-  mutate(total_wMerge = amountB + if_else(is.na(merges_amount), 0, merges_amount))
-
-
-
-DW_small.1_test <- DWfilterTotal(clean_traits_DW, F)
-DW_small.2_test <- DWfilterCount(clean_traits_DW, F)
-DW_big.1_test <- DWfilterTotal(clean_traits_DW, T)
-DW_big.2_test <- DWfilterCount(clean_traits_DW, T)
-DW_both_test <- left_join(DW_big.1_test, DW_big.2_test, by = c("project", "siteID", "experiment", "taxon")) %>%
-  left_join(.,DW_small.1_test, by = c("project", "siteID", "experiment", "taxon")) %>%
-  left_join(.,DW_small.2_test, by = c("project", "siteID", "experiment", "taxon")) %>%
-  rename("sumB" = sumDW.x,
-         "amountB" = amount.x,
-         "sumS" = sumDW.y,
-         "amountS" = amount.y) %>%
+# Combine and determine max theoretical amount of samples after merging (merges_amount) and total samples incl. where enough (total_wMerge)
+DW_both <- left_join(DW_big.1, DW_big.2, by = c("project", "siteID", "experiment", "taxon")) %>%
+  left_join(.,DW_small.1, by = c("project", "siteID", "experiment", "taxon")) %>%
+  left_join(.,DW_small.2, by = c("project", "siteID", "experiment", "taxon")) %>%
   add_column(merges_amount = .$sumS / minDW) %>%
   mutate(merges_amount = trunc(merges_amount)) %>%
   mutate(total_wMerge = amountB + if_else(is.na(merges_amount), 0, merges_amount))
+view(DW_both)
