@@ -5,10 +5,11 @@ library(tidylog)
 library(lubridate)
 library(readxl)
 library(validate)
-#library(PFTCFunctions)
+library(PFTCFunctions)
 #devtools::install_github("Between-the-Fjords/dataDownloader")
 library("dataDownloader")
-#devtools::install_version("TNRS")
-library(TNRS) # match taxa names
 #remotes::install_github("audhalbritter/dataDocumentation")
 library(dataDocumentation)
+
+#devtools::install_version("TNRS")
+library(TNRS) # match taxa names
