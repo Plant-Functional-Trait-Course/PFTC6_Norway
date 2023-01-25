@@ -16,6 +16,13 @@ raw_traits <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.x
 
 ### Data cleaning ----
 
+### Check IDs
+# get list of valid IDs
+valid_codes <- get_PFTC_envelope_codes(seed = 49, as.3.5 = FALSE)
+#
+# raw_traits |>
+#   anti_join(valid_codes, by = c("ID" = "hashcode"))
+
 # Check combinations of experiment, siteID and day
 # clean_traits %>%
 #   select(siteID,experiment,day,project,elevation_m_asl) %>%
@@ -29,11 +36,44 @@ raw_traits <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.x
 # But luckily - only Incline added elevation to their write up?
 # SO convert based on this first
 
+# leaf thickness
+# lines of code that generate the variance of leaf thickness values to find outliers
+# thickness <-clean_traits %>% select(c(ID,leaf_thickness_1_mm,leaf_thickness_2_mm,leaf_thickness_3_mm)) %>%
+#   pivot_longer(cols = c(leaf_thickness_1_mm,leaf_thickness_2_mm,leaf_thickness_3_mm), names_to = "measurement", values_to = "value")
+# thickness <- aggregate(log(thickness$value), list(thickness$ID), FUN = var)
+# thickness <- rename(thickness, ID = Group.1, thickness_var = x)
+# clean_traits <- left_join(clean_traits, thickness, by = "ID")
+
+
+# function to count decimal places, as thickness measurements should only have a precision of .001 not .0001
+# count_decimals = function(x) {
+#   if (length(x) == 0) return(numeric())
+#   x_nchr = x %>% abs() %>% as.character() %>% nchar() %>% as.numeric()
+#   x_int = floor(x) %>% abs() %>% nchar()
+#   x_nchr = x_nchr - 1 - x_int
+#   x_nchr[x_nchr < 0] = 0
+#   x_nchr}
+#
+# clean_traits$dec_1 <- NA
+# clean_traits$dec_2 <- NA
+# clean_traits$dec_3 <- NA
+# for(i in 1:nrow(clean_traits)) {clean_traits$dec_1[i] <- count_decimals(clean_traits$leaf_thickness_1_mm[i])}
+# for(i in 1:nrow(clean_traits)) {clean_traits$dec_2[i] <- count_decimals(clean_traits$leaf_thickness_2_mm[i])}
+# for(i in 1:nrow(clean_traits)) {clean_traits$dec_3[i] <- count_decimals(clean_traits$leaf_thickness_3_mm[i])}
+
+
 clean_traits <- raw_traits %>%
   # remove unused column
   select(-length_cm) |>
   # Remove rows with just NA
   filter(if_any(everything(), ~ !is.na(.))) |>
+
+  # fix ID
+  mutate(ID = case_when(ID == "COZ7391" ~ "COY7391",
+                        ID == "CUZ1951" ~ "CUY1951",
+                        ID == "BKV1781" ~ "BJV1781",
+                        ID == "1848950.0" ~ "APR6962",
+                        TRUE ~ ID)) |>
 
   # fix project
   mutate(project = case_when(ID %in% c("AGP9286", "HRQ1892") ~ "3D",
@@ -42,7 +82,7 @@ clean_traits <- raw_traits %>%
                              TRUE ~ project)) |>
 
   # Remove Seans data
-  filter(is.na(project)|project!="Sean") |>
+  filter(is.na(project)|project !="Sean") |>
 
   # fix siteID
   mutate(siteID = if_else(siteID == "vik", "Vik", siteID),
@@ -96,19 +136,83 @@ clean_traits <- raw_traits %>%
           leaf_thickness_1_mm = if_else(ID == "DEV8302", 0.155, leaf_thickness_1_mm),
           leaf_thickness_2_mm = if_else(ID == "DDI9716", 0.223, leaf_thickness_2_mm),
           leaf_thickness_2_mm = if_else(ID == "DEX5838", 0.185, leaf_thickness_2_mm),
-          leaf_thickness_3_mm = if_else(ID == "CHV2350", 0.198, leaf_thickness_3_mm)) |>
+          leaf_thickness_3_mm = if_else(ID == "CHV2350", 0.198, leaf_thickness_3_mm),
+          # there is a note that mistakenly says that leaf thickness should be 0.0325
+          leaf_thickness_3_mm = if_else(ID == "HWK3847", 0.325, leaf_thickness_3_mm),
+          leaf_thickness_1_mm = if_else(ID == "CHW9026", 0.206, leaf_thickness_1_mm),
+          leaf_thickness_2_mm = if_else(ID == "CHW9026", 0.215, leaf_thickness_2_mm),
+          leaf_thickness_3_mm = if_else(ID == "CHW9026", 0.21, leaf_thickness_3_mm),
+          # outlier values of ~ 1 magnitude have been changed to better reflect other measured values of the sample
+          leaf_thickness_2_mm = if_else(ID == "ICR7173", 0.091, leaf_thickness_2_mm),
+          leaf_thickness_2_mm = if_else(ID == "FVU2190", 0.038, leaf_thickness_2_mm),
+          leaf_thickness_1_mm = if_else(ID == "ESD7613", 0.243, leaf_thickness_1_mm),
+          leaf_thickness_1_mm = if_else(ID == "ESV6901", 0.247, leaf_thickness_1_mm),
+          leaf_thickness_1_mm = if_else(ID == "CJN0746", 0.099, leaf_thickness_1_mm),
+          leaf_thickness_3_mm = if_else(ID == "CJN0746", 0.099, leaf_thickness_3_mm),
+          leaf_thickness_1_mm = if_else(ID == "CWC6486", 0.265, leaf_thickness_1_mm),
+          leaf_thickness_2_mm = if_else(ID == "CCO1039", 0.099, leaf_thickness_2_mm),
+          leaf_thickness_3_mm = if_else(ID == "CCO1039", 0.094, leaf_thickness_3_mm),
+          leaf_thickness_1_mm = if_else(ID == "EPR5076", 0.236, leaf_thickness_1_mm),
+          leaf_thickness_1_mm = if_else(ID == "CXJ5628", 0.098, leaf_thickness_1_mm),
+          leaf_thickness_1_mm = if_else(ID == "EQE2168", 0.257, leaf_thickness_1_mm),
+          leaf_thickness_1_mm = if_else(ID == "HMZ3031", 0.219, leaf_thickness_1_mm),
+          leaf_thickness_1_mm = if_else(ID == "GTE6076", 0.170, leaf_thickness_1_mm),
+          leaf_thickness_1_mm = if_else(ID == "BFU6275", 0.197, leaf_thickness_1_mm),
+          leaf_thickness_2_mm = if_else(ID == "BFU6275", 0.172, leaf_thickness_2_mm),
+          leaf_thickness_1_mm = if_else(ID == "ANV4280", 0.249, leaf_thickness_1_mm),
+          leaf_thickness_3_mm = if_else(ID == "CJC4018", 0.091, leaf_thickness_3_mm),
+          leaf_thickness_3_mm = if_else(ID == "GSD6144", 0.183, leaf_thickness_3_mm)
+          ) |>
 
   # fix plant height
   # fix wrong value .14.8, which gets converted to NA in data import
-  mutate(plant_height = if_else(ID == "EYC5540", 14.8, plant_height),
+  mutate(plant_height = case_when(ID == "EYC5540" ~ 14.8,
+                                  # height values drawn from Incline group fieldwork sheets
+                                  ID == "BOU0176" ~ 8.1,
+                                  ID == "BDQ5475" ~ 5.3,
+                                  ID == "EDH3100" ~ 14.6,
+                                  # missing heights and extracting from envelopes
+                                  ID == "CHW9026" ~ 12.7,
+                                  ID == "BHS3927" ~ 9.4,
+                                  ID == "AQA6446" ~ 15.2,
+                                  ID == "AIT4560" ~ 3.1,
+                                  ID == "AIX4648" ~ 13.7,
+                                  ID == "APO5292" ~ 11,
+                                  ID == "AJB8204" ~ 8.5,
+                                  ID == "CBX5036" ~ 14.3,
+                                  ID == "APQ8072" ~ 15,
+                                  ID == "BQG7481" ~ 6,
+                                  ID == "BFI7437" ~ 37,
+                                  ID == "AQK5961" ~ 17.5,
+                                  ID == "CDE0818" ~ 12.9,
+                                  ID == "CON9328" ~ 6.7,
+                                  ID == "DAK3110" ~ 11.1,
+                                  ID == "CZY5489" ~ 33.9,
+                                  ID == "GPW1350" ~ 35,
+                                  ID == "GDI1096" ~ 7.4,
+                                  ID == "CWQ2942" ~ 12.8,
+                                  ID == "CUC2352" ~ 17.3,
+                                  TRUE ~ plant_height),
          # All incline plants were measured in mm, so convert to cm
          plant_height = ifelse(project == "Incline", plant_height/10, plant_height),
          # fix some leaves that were measured in mm
-         plant_height = ifelse(plant_height > 59, plant_height/10, plant_height),
-         # fix typos
-         plant_height = case_when(ID == "GDI1096" ~ 0.0422,
-                                  ID == "CWQ2942" ~ 0.1312,
-                                  ID == "CUC2352" ~ 0.1232))
+         plant_height = ifelse(plant_height > 59, plant_height/10, plant_height)) |>
+
+  # Wet mass
+  mutate(wet_mass_g = case_when(ID == "CHW9026" ~ 0.0698,
+                                ID == "GDI1096" ~ 0.0422,
+                                ID == "CWQ2942" ~ 0.1312,
+                                ID == "CUC2352" ~ 0.1232,
+                                ID == "BOF6747" ~ 0.0733,
+                                ID == "EIZ1694" ~ 0.0126,
+                                ID == "GCU2533" ~ 0.0441,
+                                ID == "GTA1209" ~ 0.0174,
+                                ID == "GIZ0068" ~ 0.0663,
+                                ID == "GYZ8905" ~ 0.3574,
+                                ID == "ERM6771" ~ 0.0669,
+                                TRUE ~ wet_mass_g))
+
+
 
 # Check experiments column
 # Experiment should all be C or OTC for Incline
@@ -162,7 +266,7 @@ clean_traits <- raw_traits %>%
 #   arrange(siteID, taxon, experiment, plotID, individual_nr)
 
 # Use dataDocumentation package
-meta_data_3D <- create_threed_meta_data()
+#meta_data_3D <- create_threed_meta_data()
 # this can correct some of the plotID issues
 
 
@@ -172,6 +276,7 @@ clean_traits <- clean_traits %>%
   mutate(plotID = case_when(plotID =="B2" ~ "2.0",
                             plotID =="B3" ~ "3.0",
                             plotID =="BL5" ~ "5.0",
+                            ID == "GAO0614" ~ "6.0",
                             plotID =="NA"~ NA_character_,
                             TRUE ~ plotID)) |>
   mutate(plotID = case_when(remark == "1 85 WN1C 167" ~ "1-85 WN1C 162", # corrected to metadata
@@ -262,17 +367,14 @@ clean_traits <- clean_traits %>%
 
 ### Clean taxa names ----
 
-# first get in data from new_taxon col
-
-clean_traits <- clean_traits |>
-  mutate(taxon = if_else(is.na(taxon), new_taxon, taxon))
-
 # use TNRS package to find correct names
 # species <- unique(clean_traits$taxon)
 # tnrs_species_check <- TNRS(species)
 
-# Now fix species names
-clean_traits <- clean_traits %>%
+clean_traits <- clean_traits |>
+  # first get in data from new_taxon col
+  mutate(taxon = if_else(is.na(taxon), new_taxon, taxon)) |>
+  # Now fix species names
   mutate(remark = if_else(taxon == "Festuca officinalis", "Taxon was Festuca officinalis, changed to F. ovina after checking scan", remark)) %>%
   mutate(taxon = str_replace_all(taxon,
                                  c("Salix herbaceae" = "Salix herbacea",
@@ -286,11 +388,101 @@ clean_traits <- clean_traits %>%
                                    "Festuca officinalis" = "Festuca ovina",
                                    "Astralagulus sp." = "Astragalus alpinus",
                                    "Geranium sylvatica" = "Geranium sylvaticum"))) %>%
-  select(-new_taxon)
+  select(-new_taxon) |>
+  # fix wrong species in data
+  mutate(taxon = if_else(ID == "HIW1048", "Carex bigelowii", taxon))
 
+
+
+
+
+
+
+#### JOIN DRY MASS AND LEAF AREA ####
+### source dry mass and leaf area
+source("R/traits/clean_dry_mass_and_area.R")
+
+# Seans leaves
+# Sean <- run lines 65-85 with == "Sean"
+# dry_mass |> anti_join(clean_traits, by = "ID") |>
+#   anti_join(Sean, "ID")
+# no leaves that do not match
+
+# leaf_area |> anti_join(clean_traits, by = "ID") |>
+#   anti_join(Sean, by = "ID")
+# out, out_2, EDJ2892, EGN0308_2, EOP1516, GAL3376
+
+clean_traits <- clean_traits |>
+  # join dry mass and area
+  left_join(dry_mass, by = "ID") |>
+  # add nr of leaves for dry mass
+  mutate(dry_mass_nr_leaves = if_else(is.na(dry_mass_nr_leaves), bulk_nr_leaves, dry_mass_nr_leaves)) |>
+  left_join(leaf_area, by = "ID") |>
+
+  # remove wrong species
+  filter(!grepl("Wrong Species|wrong species|WRONG SPECIES", remark)) |>
+
+  # fix comments
+  mutate(remark_dry_weighing = if_else(is.na(dry_mass_g), paste0("dry mass missing; ", remark_dry_weighing), remark_dry_weighing)) |>
+  rename(dry_mass_comment = remark_dry_weighing) |>
+  # add comment to scans that did not work
+  mutate(area_comment = if_else(ID %in% c("ACZ3726", "AGG5788", "BFQ1216", "BFR1655", "BPQ4029", "DBV4120", "DTS3934", "GYL1269", "HLM0330", "IFW2666", "IHS9389", "ILK6566"), "scan corrupt and area missing", area_comment)) |>
+
+  # sean leaf
+  filter(!ID == "HUI3674") |>
+
+  # Fix leaf area columns
+  rename(number_leaf_fragments_scanned = n,
+         wet_mass_total_g = wet_mass_g,
+         dry_mass_total_g = dry_mass_g,
+         leaf_area_total_cm2 = leaf_area,
+         nr_leaves = bulk_nr_leaves) |>
+
+  # FIX NR OF LEAVES
+  # replace nr leave if NA
+  mutate(nr_leaves = ifelse(is.na(nr_leaves), number_leaf_fragments_scanned, nr_leaves)) |>
+# bulk number of leaves counted from leaf scans
+  mutate(nr_leaves = case_when(ID == "CHW9026" ~ 1,
+                               ID == "BHS3927" ~ 1,
+                               ID == "AQA6446" ~ 1,
+                               ID == "AIT4560" ~ 1,
+                               ID == "AIX4648" ~ 1,
+                               ID == "APO5292" ~ 1,
+                               ID == "AJB8204" ~ 1,
+                               ID == "CBX5036" ~ 1,
+                               ID == "APQ8072" ~ 1,
+                               ID == "BQG7481" ~ 1,
+                               ID == "BFI7437" ~ 1,
+                               ID == "AQK5961" ~ 1,
+                               ID == "CDE0818" ~ 2,
+                               ID == "DAK3110" ~ 1,
+                               ID == "CZY5489" ~ 3,
+                               ID == "GPW1350" ~ 1,
+                               TRUE ~ nr_leaves)) %>%
+
+
+
+  # Calculate average leaf thickness
+  mutate(leaf_thickness_mm = rowMeans(select(., matches("leaf_thickness_\\d_mm")), na.rm = TRUE))  |>
+  # Calculate values on the leaf level (mostly bulk samples)
+  mutate(wet_mass_g = wet_mass_total_g / nr_leaves,
+         dry_mass_g = dry_mass_total_g / dry_mass_nr_leaves,
+         leaf_area_cm2 = leaf_area_total_cm2 / nr_leaves)  |>
+  # Calculate SLA and LDMC (replace with wet mass for now)
+  mutate(sla_cm2_g = leaf_area_cm2 / dry_mass_g,
+         ldmc = dry_mass_g / wet_mass_g) #|>
+  # sort
+  select(ID, date, project, siteID, elevation_m_asl, experiment, plotID, individual_nr, taxon, nr_leaves, plant_height_cm = plant_height, wet_mass_g, dry_mass_g, leaf_area_cm2, leaf_thickness_mm, sla_cm2_g, ldmc, remark, remarks_2, dry_mass_comment, number_leaf_fragments_scanned, area_comment, scanning_comment, supporting_scanning_comment)
+
+#clean_traits |> filter(ID == "AQK5961") |> as.data.frame()
+
+write_csv(clean_traits, file = "clean_data/PFTC6_clean_leaf_traits_2022.csv")
+
+#_______________________________________________________________________________
 
 ### PROBLEMS
 # DJD3630 missing experiment -> probably C, need to fix plotID -> need to find out if 4 inds in here
+# Joshua says experiment -> OTC
 clean_traits |>
   filter(siteID == "Gud", taxon == "Campanula rotundifolia") |>
   arrange(plotID, experiment, individual_nr) |>
@@ -300,6 +492,15 @@ clean_traits |>
   filter(siteID == "Gud", taxon == "Poa alpina", experiment == "OTC") |>
   arrange(plotID, individual_nr) |>
   as.data.frame()
+
+# apperently not existing plots: Skj 3,4,7 and Ulv 2, Bl5.
+clean_traits |>
+  filter((siteID == "Skj" & plotID %in% c("3.0", "4.0", "7.0")) |
+           (siteID == "Ulv" & plotID %in% c("2.0", "5.0"))) |>
+  count(siteID, plotID)
+
+
+
 #EVU9278 missing plotID and ind nr, could be 1-3 WN1C 85, because is missing ind 3
 clean_traits |>
   filter(siteID == "Joa", taxon == "Sibbaldia procumbens") |>
@@ -309,49 +510,105 @@ clean_traits |>
 clean_traits |>
   filter(siteID == "Joa", taxon == "Festuca rubra") |>
   arrange(plotID, individual_nr) |> View()
-# HIU3378 dry mass exists, so probably not entered
-# Can use Aud's package for precise experiment info for 3D when needed
+
+# LA and dry mass
+clean_traits |> filter(ID == "EGN0308_2")
+# only in leaf area, but not in clean traits
+# EOP1516   a grass
+# GAL3376: sibbaldia, but we have 4 sibbaldia with 2 leaves
+# EDJ2892: Saussurea alpina 1 leaf, could be GJN2296
+# EGN0308_2 wrong ID Viola bistorta could be EGR7522
+
+# missing data
+clean_traits |> filter(is.na(dry_mass_total_g)) # 2 leaves
+# add comment for missing area, mass, height etc.
+# do something with all the comment columns
+
+names(clean_traits)
+clean_traits |> select(remark, remarks_2, dry_mass_comment, area_comment, scanning_comment, supporting_scanning_comment) |>
+  count(dry_mass_comment) |> print(n = Inf)
+
+# merge remark and remarks_2
+clean_traits |> select(ID, taxon, nr_leaves, dry_mass_comment) |>
+  filter(!is.na(dry_mass_comment)) |> print(n = Inf)
+
+# 76 leaves!!!
+clean_traits |> filter(is.na(leaf_area_cm2), !grepl("corrupt", area_comment)) |> distinct(ID, area_comment) |> arrange(ID) |> print(n = Inf)
+clean_traits |> filter(ID == "HIW1048") |> as.data.frame()
+# CXN4455 has comment not scanned
+# GQK9871 has comment not scanned
+
+leaf_area |> filter(grepl("DYL", ID)) |> select(ID)
+# area correction
+# AEE2091
+# AFT5418
+# ANN5578
+# CRU9872
+# DYL5087
+
+# leaf area issues: how did you save the scans after correcting? -> needs checking
+
+# 13 AIG8684 Potentilla erecta              2 may be missing some material
+
+# go through all remark, remarks_2 and merge all the comments
+# make 1 relevant comment column
 
 
+#_______________________________________________________________________________
+
+#### CHECKING DATA, OUTLIERS ETC. ####
+
+# some outliers for area vs mass
+# looks good
+clean_traits |>
+  ggplot(aes(x = leaf_area_cm2, y = dry_mass_g, colour = siteID)) +
+  geom_point()
+
+# DVI2460 has large wet mass, but cannot find envelop to check!
+# strange cloud with low LA values
+clean_traits |>
+  ggplot(aes(x = leaf_area_cm2, y = wet_mass_g, colour = siteID)) +
+  geom_point()
+
+clean_traits |>
+  ggplot(aes(x = dry_mass_g, y = wet_mass_g, colour = taxon)) +
+  geom_point() +
+  theme(legend.position = "none")
+
+# 2 strange values
+clean_traits |>
+  ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_2_mm, colour = siteID)) +
+  geom_point()
+
+clean_traits |> filter(leaf_thickness_1_mm < 0.5 & leaf_thickness_2_mm > 0.75) |> as.data.frame()
+# CKE1363 LT2 and 3 might be a bit high
+clean_traits |> filter(taxon == "Festuca rubra") |> ggplot(aes(x = leaf_thickness_mm)) + geom_histogram()
+# CXL2586: LT1 0.073?
+clean_traits |> filter(leaf_thickness_1_mm > 0.7 & leaf_thickness_2_mm < 0.25) |> as.data.frame()
 
 
-### source dry mass and leaf area
-source("R/traits/clean_dry_mass_and_area.R")
+# looks good!
+clean_traits |>
+  ggplot(aes(x = leaf_thickness_2_mm, y = leaf_thickness_3_mm, colour = siteID)) +
+  geom_point()
+
+clean_traits |>
+  ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_3_mm, colour = siteID)) +
+  geom_point()
 
 
-####### join leaf area and dry mass data
+# no ldmc problems!!!
+clean_traits |>
+  ggplot(aes(x = dry_mass_g, y = ldmc, shape = siteID, colour = ldmc > 1)) +
+  geom_point()
 
-clean_traits3 <- left_join(clean_traits3, raw_leaf_area, by = "ID")
-
-# Fix leaf area columns
-clean_traits3 <- clean_traits3 %>%
-  select(-X) %>%
-  rename(number_leaf_fragments_scanned = n,
-         wet_mass_total_g = wet_mass_g,
-         leaf_area_total_cm2 = leaf_area,
-         nr_leaves = bulk_nr_leaves) %>%
-  mutate(nr_leaves = ifelse(is.na(nr_leaves) & !is.na(leaf_thickness_1_mm), 1, nr_leaves)) %>%
-  mutate(leaf_thickness_ave_mm = rowMeans(select(., matches("leaf_thickness_\\d_mm")), na.rm = TRUE)) %>%
-  # Calculate average leaf thickness
-  mutate(leaf_thickness_ave_mm = rowMeans(select(., matches("leaf_thickness_\\d_mm")), na.rm = TRUE)) %>%
-  # Calculate values on the leaf level (mostly bulk samples)
-  mutate(wet_mass_g = wet_mass_total_g / nr_leaves,
-         leaf_area_cm2 = leaf_area_total_cm2 / nr_leaves) %>%
-
-  # # Wet and dry mass do not make sense for these species
-  # mutate(dry_mass_g = ifelse(genus %in% c("Baccharis", "Lycopodiella", "Lycopodium", "Hypericum"), NA_real_, dry_mass_g),
-  #        wet_mass_g = ifelse(genus %in% c("Baccharis", "Lycopodiella", "Lycopodium", "Hypericum"), NA_real_, wet_mass_g),
-  #        leaf_area_cm2 = ifelse(genus %in% c("Baccharis", "Lycopodiella", "Lycopodium", "Hypericum"), NA_real_, leaf_area_cm2)) |>
-
-  # Calculate SLA and LDMC (replace with wet mass for now)
-  mutate(sla_cm2_g = leaf_area_cm2 / wet_mass_g)
-
-# Some scans not there
+clean_traits |>
+  ggplot(aes(x = dry_mass_g, y = sla_cm2_g, shape = siteID, colour = sla_cm2_g > 500)) +
+  geom_point()
+clean_traits |> filter(sla_cm2_g > 500) |> select(ID:plotID, dry_mass_total_g, wet_mass_total_g, ldmc, leaf_area_cm2, sla_cm2_g)
 
 
-
-# Checking for outliers ####
-data <- clean_traits3
+data <- clean_traits
 # Libraries
 library(viridis)
 library(forcats)
@@ -442,80 +699,3 @@ for (species_ in species) {
 # Select which plot (species) to view
 species
 species_plots[1] #Agrostis capillaris
-
-
-
-#_______________________________________________________________________________
-# NA removal and outlier detection by Joshua
-
-clean_traits3$false <- clean_traits3$plant_height/clean_traits3$wet_mass_g # a ratio of 1 or 0.1 points to a mistaken height value
-# height values drawn from Incline group fieldwork sheets
-clean_traits3[clean_traits3$ID == "BOU0176", "plant_height"] <- 8.1
-clean_traits3[clean_traits3$ID == "BDQ5475", "plant_height"] <- 5.3
-clean_traits3[clean_traits3$ID == "EDH3100", "plant_height"] <- 14.6
-
-# bulk number of leaves counted from leaf scans
-clean_traits3[clean_traits3$ID == "CHW9026", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "BHS3927", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "AQA6446", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "AIT4560", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "AIX4648", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "APO5292", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "AJB8204", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "CBX5036", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "APQ8072", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "BQG7481", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "BFI7437", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "CDE0818", "bulk_nr_leaves"] <- 2
-clean_traits3[clean_traits3$ID == "CON9328", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "DAK3110", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "CZY5489", "bulk_nr_leaves"] <- 3
-clean_traits3[clean_traits3$ID == "GPW1350", "bulk_nr_leaves"] <- 1
-clean_traits3[clean_traits3$ID == "AQK5961", "bulk_nr_leaves"] <- 1
-
-# there is a note that mistakenly says that leaf thickness should be 0.0325
-clean_traits3[clean_traits3$ID == "HWK3847", "leaf_thickness_3_mm"] <- 0.325
-
-# lines of code that generate the variance of leaf thickness values to find outliers
-thickness <-clean_traits3 %>% select(c(ID,leaf_thickness_1_mm,leaf_thickness_2_mm,leaf_thickness_3_mm)) %>%
-  pivot_longer(cols = c(leaf_thickness_1_mm,leaf_thickness_2_mm,leaf_thickness_3_mm), names_to = "measurement", values_to = "value")
-thickness <- aggregate(log(thickness$value), list(thickness$ID), FUN = var)
-thickness <- rename(thickness, ID = Group.1, thickness_var = x)
-clean_traits3 <- left_join(clean_traits3, thickness, by = "ID")
-
-# outlier values of ~ 1 magnitude have been changed to better reflect other measured values of the sample
-clean_traits3[clean_traits3$ID == "ICR7173", "leaf_thickness_2_mm"] <- 0.091
-clean_traits3[clean_traits3$ID == "FVU2190", "leaf_thickness_2_mm"] <- 0.038
-clean_traits3[clean_traits3$ID == "ESD7613", "leaf_thickness_1_mm"] <- 0.243
-clean_traits3[clean_traits3$ID == "ESV6901", "leaf_thickness_1_mm"] <- 0.247
-clean_traits3[clean_traits3$ID == "CJN0746", "leaf_thickness_2_mm"] <- 1.000
-clean_traits3[clean_traits3$ID == "CWC6486", "leaf_thickness_1_mm"] <- 0.265
-clean_traits3[clean_traits3$ID == "CCO1039", "leaf_thickness_1_mm"] <- 1.000
-clean_traits3[clean_traits3$ID == "EPR5076", "leaf_thickness_1_mm"] <- 0.236
-clean_traits3[clean_traits3$ID == "CXJ5628", "leaf_thickness_1_mm"] <- 0.098
-clean_traits3[clean_traits3$ID == "EQE2168", "leaf_thickness_1_mm"] <- 0.257
-clean_traits3[clean_traits3$ID == "HMZ3031", "leaf_thickness_1_mm"] <- 0.219
-clean_traits3[clean_traits3$ID == "GTE6076", "leaf_thickness_1_mm"] <- 0.170
-
-# function to count decimal places, as thickness measurements should only have a precision of .001 not .0001
-count_decimals = function(x) {
-  if (length(x) == 0) return(numeric())
-  x_nchr = x %>% abs() %>% as.character() %>% nchar() %>% as.numeric()
-  x_int = floor(x) %>% abs() %>% nchar()
-  x_nchr = x_nchr - 1 - x_int
-  x_nchr[x_nchr < 0] = 0
-  x_nchr}
-
-clean_traits3$dec_1 <- NA
-clean_traits3$dec_2 <- NA
-clean_traits3$dec_3 <- NA
-for(i in 1:nrow(clean_traits3)) {clean_traits3$dec_1[i] <- count_decimals(clean_traits3$leaf_thickness_1_mm[i])}
-for(i in 1:nrow(clean_traits3)) {clean_traits3$dec_2[i] <- count_decimals(clean_traits3$leaf_thickness_2_mm[i])}
-for(i in 1:nrow(clean_traits3)) {clean_traits3$dec_3[i] <- count_decimals(clean_traits3$leaf_thickness_3_mm[i])}
-
-
-rm(thickness)
-clean_traits3 <- select(clean_traits3, -c(false, thickness_var, dec_1, dec_2, dec_3))
-
-#_______________________________________________________________________________
-
