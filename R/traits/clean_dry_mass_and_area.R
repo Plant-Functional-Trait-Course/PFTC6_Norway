@@ -134,7 +134,10 @@ raw_leaf_area <- read_csv("raw_data/traits/PFTC6_leaf_area_2022.csv")
 raw_leaf_area_corrected <- read_csv("raw_data/traits/PFTC6_leaf_area_corrected_2022.csv") |>
   # remove corrections for herbivory
   filter(!grepl("Coskun", dir))
-raw_leaf_area_croped <- read_csv("raw_data/traits/PFTC6_leaf_area_cropping_2022.csv")
+raw_leaf_area_corrected_2 <- read_csv("raw_data/traits/PFTC6_leaf_area_corrected_2_2022.csv")
+raw_leaf_area_croped <- read_csv("raw_data/traits/PFTC6_leaf_area_cropping_2022.csv") |>
+  # remove scans that also needed painting
+  filter(!ID %in% c("AEE2091_edited", "AFT5418_edited", "ANN5578_edited", "CRU9872_edited", "DYL5087_edited"))
 
 # comments about scanning
 scanning_checks <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2022.xlsx", sheet = "ScanningChecks") |>
@@ -156,11 +159,13 @@ scanning_checks <- read_excel(path = "raw_data/traits/PFTC6_Norway_Leaf_traits_2
 
 # corrected leaves
 corrected_area <- raw_leaf_area_corrected |>
+  bind_rows(raw_leaf_area_corrected_2) |>
   bind_rows(raw_leaf_area_croped) |>
   mutate(area_comment = case_when(str_detect(dir, "Cora") ~ "corrected invisible area",
+                                  ID %in% c("AEE2091_edited", "AFT5418-edited", "ANN5578_edited", "CRU9872-edited", "DYL5087-edited") ~ "corrected invisible area",
                                   str_detect(dir, "Susan") ~ "removed foreign object",
-         str_detect(dir, "cropping") ~ "additional scan cropping"),
-         ID = str_remove(ID, "_edited")) |>
+                                  str_detect(dir, "cropping") ~ "additional scan cropping"),
+         ID = str_remove(ID, "_edited|-edited|_Edited")) |>
   # remove area correction for DVA0594, otherwise mass area ratio is bad
   # ADG7762: do not use correction, removes leaf sheath, but anyway invisible, so needs only comment that mass area ratio might be wrong
   filter(!ID %in% c("DVA0594", "ADG7762")) |>

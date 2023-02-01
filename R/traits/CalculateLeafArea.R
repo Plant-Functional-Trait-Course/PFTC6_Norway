@@ -106,6 +106,7 @@ leaf_area_corr <- LeafArea.raw_total |>
 
 # save data as csv
 write.csv(leaf_area_corr, file = "raw_data/traits/PFTC6_leaf_area_corrected_2022.csv")
+write.csv(leaf_area_corr, file = "raw_data/traits/PFTC6_leaf_area_corrected_2_2022.csv")
 
 
 ###########################################################################
