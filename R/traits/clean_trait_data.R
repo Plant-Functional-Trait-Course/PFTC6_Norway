@@ -76,7 +76,7 @@ clean_traits <- raw_traits %>%
                         TRUE ~ ID)) |>
 
   # fix project
-  mutate(project = case_when(ID %in% c("AGP9286", "HRQ1892") ~ "3D",
+  mutate(project = case_when(ID %in% c("AGP9286", "HRQ1892", "BPC8034") ~ "3D",
                              ID %in% c("CJC4018", "CSV2097", "EDH3100") ~ "Incline",
                              ID %in% c("CGE9632", "IBW5191") ~ "Sean",
                              TRUE ~ project)) |>
@@ -86,7 +86,8 @@ clean_traits <- raw_traits %>%
 
   # fix siteID
   mutate(siteID = if_else(siteID == "vik", "Vik", siteID),
-         siteID = if_else(ID == "BIE2833", "Ulv", siteID)) |>
+         siteID = if_else(ID == "BIE2833", "Ulv", siteID),
+         siteID = if_else(ID == "BPC8034", "Hog", siteID)) |>
 
   # Fix days and siteID
   mutate(day = case_when( siteID == "Ulv" & project == "Incline" ~ 24,
@@ -129,7 +130,9 @@ clean_traits <- raw_traits %>%
                                      siteID == "Joa" ~ 920)) |>
 
   # Fix experiment column when obviously wrong
-  mutate(experiment = ifelse(experiment == "NA", NA_character_, experiment)) |>
+  mutate(experiment = ifelse(experiment == "NA", NA_character_, experiment),
+         # checked with field sheets
+         experiment = if_else(ID == "DJD3630", "OTC", experiment)) |>
 
   # Clean leaf thickness data which is wrong (LT > 150)
   mutate( leaf_thickness_1_mm = if_else(ID == "IKY0250", 0.207, leaf_thickness_1_mm), # fix unit errors
@@ -161,7 +164,8 @@ clean_traits <- raw_traits %>%
           leaf_thickness_2_mm = if_else(ID == "BFU6275", 0.172, leaf_thickness_2_mm),
           leaf_thickness_1_mm = if_else(ID == "ANV4280", 0.249, leaf_thickness_1_mm),
           leaf_thickness_3_mm = if_else(ID == "CJC4018", 0.091, leaf_thickness_3_mm),
-          leaf_thickness_3_mm = if_else(ID == "GSD6144", 0.183, leaf_thickness_3_mm)
+          leaf_thickness_3_mm = if_else(ID == "GSD6144", 0.183, leaf_thickness_3_mm),
+          leaf_thickness_1_mm = if_else(ID == "CXL2586", 0.073, leaf_thickness_1_mm)
           ) |>
 
   # fix plant height
@@ -210,6 +214,7 @@ clean_traits <- raw_traits %>%
                                 ID == "GIZ0068" ~ 0.0663,
                                 ID == "GYZ8905" ~ 0.3574,
                                 ID == "ERM6771" ~ 0.0669,
+                                ID == "DVI2460" ~ 1.3371,
                                 TRUE ~ wet_mass_g))
 
 
@@ -266,7 +271,7 @@ clean_traits <- raw_traits %>%
 #   arrange(siteID, taxon, experiment, plotID, individual_nr)
 
 # Use dataDocumentation package
-#meta_data_3D <- create_threed_meta_data()
+meta_data_3D <- create_threed_meta_data()
 # this can correct some of the plotID issues
 
 
@@ -412,21 +417,93 @@ source("R/traits/clean_dry_mass_and_area.R")
 #   anti_join(Sean, by = "ID")
 # out, out_2, EDJ2892, EGN0308_2, EOP1516, GAL3376
 
-clean_traits <- clean_traits |>
+clean_traits2 <- clean_traits |>
   # join dry mass and area
   left_join(dry_mass, by = "ID") |>
-  # add nr of leaves for dry mass
-  mutate(dry_mass_nr_leaves = if_else(is.na(dry_mass_nr_leaves), bulk_nr_leaves, dry_mass_nr_leaves)) |>
   left_join(leaf_area, by = "ID") |>
+
+  # fix wet mass that is 10 times too large
+  mutate(ratio = leaf_area/wet_mass_g,
+         wet_mass_g = if_else(ratio < 10, wet_mass_g/10, wet_mass_g),
+         comment_dm = if_else(ratio < 10, paste0(comment_dm, "_", "10 x too large, corrected wet mass"), comment_dm)) |>
 
   # remove wrong species
   filter(!grepl("Wrong Species|wrong species|WRONG SPECIES", remark)) |>
 
-  # fix comments
-  mutate(remark_dry_weighing = if_else(is.na(dry_mass_g), paste0("dry mass missing; ", remark_dry_weighing), remark_dry_weighing)) |>
-  rename(dry_mass_comment = remark_dry_weighing) |>
+  # FIX COMMENTS
+  # missing data
+  mutate(comment_dm = if_else(is.na(dry_mass_g), paste0(comment_dm, "_dry mass missing"), comment_dm),
+         comment_dm = if_else(is.na(wet_mass_g), paste0(comment_dm, "_wet mass missing"), comment_dm),
+         comment_dm = if_else(is.na(plant_height), paste0(comment_dm, "_height missing"), comment_dm),
+         comment_area = if_else(is.na(leaf_area), paste0(comment_area, "_area missing"), comment_area),
+         # missing info that cannot be solved
+         # DLL3549, EVU9278, EXQ7925
+         comment_area = if_else(is.na(plotID), "missing plotID", comment_area),
+         comment_area = if_else(ID == "EVU9278", "missing plotID and ind_nr", comment_area)) |>
+  rename(remark_dry_mass = remark_dry_weighing) |>
   # add comment to scans that did not work
-  mutate(area_comment = if_else(ID %in% c("ACZ3726", "AGG5788", "BFQ1216", "BFR1655", "BPQ4029", "DBV4120", "DTS3934", "GYL1269", "HLM0330", "IFW2666", "IHS9389", "ILK6566"), "scan corrupt and area missing", area_comment)) |>
+  mutate(comment_area = if_else(ID %in% c("ACZ3726", "AGG5788", "BFQ1216", "BFR1655", "BPQ4029", "DBV4120", "DTS3934", "GYL1269", "HLM0330", "IFW2666", "IHS9389", "ILK6566"), "scan corrupt_area missing", comment_area)) |>
+
+  # other problems
+  mutate(comment_area = case_when(grepl("fungus", remark) ~ "damage_spots",
+                                  grepl("frozen!", remarks_2) ~ "damage_frost",
+                                  ID %in% c("EIZ1694", "CZR5069") ~ "wet mass when dry_wet mass < expected",
+                                  comment_area == "NA_area missing" ~ "area missing",
+                                  ID == "DVA0594" ~ "including sheath_mass area > expected",
+                                  ID == "ADG7762" ~ "including sheath_mass area > expected",
+                                  TRUE ~ comment_area),
+
+         comment_dm = case_when(ID %in% c("GWT1967", "GUH1653") ~ "flattened for thickness measure_thickness",
+                                ID %in% c("DVQ3484", "FXQ1526") ~ "thickness measured when dry_thickness",
+                                ID %in% c("GTC8484") ~ "sterile brachlets",
+                                comment_dm == "NA_dry mass missing" ~ "dry mass missing",
+                                comment_dm == "height missing_NA" ~ "height missing",
+                                comment_dm == "NA_height missing" ~ "height missing",
+                                comment_dm == "NA_wet mass missing" ~ "wet mass missing",
+                                TRUE ~ comment_dm)) |>
+
+  # merge trait comments
+  mutate(comment = paste0(comment_dm, "_", comment_area),
+         comment = str_remove(comment, "NA_NA_|NA_|_NA|NA")) |>
+
+  # merge remark and remarks_2
+  mutate(remark = if_else(!is.na(remarks_2), paste0(remark, "_", remarks_2), remark)) |>
+  select(-remarks_2, -comment_dm, -comment_area) |>
+
+  # Make flags
+  mutate(flag = case_when(
+    # not reliable
+    grepl("damage|stem leaves|sterile brachlets", comment) ~ "unrealiable data",
+
+    # specifics not reliable
+    grepl("area < expected", comment) ~ "unrealibale area",
+    grepl("dry mass < expected", comment) ~ "unrealibale dry mass",
+    grepl("wet mass < expected", comment) ~ "unrealibale wet mass",
+    grepl("wet mass > expected", comment) ~ "unrealibale wet mass",
+    grepl("area_mass < expected|mass area > expected", comment) ~ "unrealibale mass and area",
+    grepl("flattened for thickness measure|thickness measured when dry", comment) ~ "unrealibale thickness",
+    grepl("leaf area from one leaf was matched to leaf with missing area", comment) ~ "potentially unrealibale area",
+
+    # missing
+    comment == "missing plotID and ind_nr" ~ "missing plotID and ind_nr",
+    comment == "missing plotID" ~ "missing plotID",
+    comment == "height missing" ~ "missing height",
+    comment == "wet mass missing" ~ "missing wet mass",
+    comment == "dry mass missing" ~ "missing dry mass",
+    comment == "area missing" ~ "missing area",
+    comment == "scan corrupt_area missing" ~ "missing area",
+    comment == "thickness missing" ~ "missing thickness",
+
+    # multiple issues
+    comment == "height missing_mid_overlapping_folded_leaves_area < expected" ~ "missing height_unrealibale area",
+    comment == "low_overlapping_folded_leaves_damage_area < expected" ~ "unrealibale data",
+    comment == "part of petiole gone, dry mass < expected_area missing" ~ "unrealibale dry mass_missing area",
+    comment == "petiole missing, area_mass < expected_damage_herbivory" ~ "unrealiable data",
+    comment == "petiole missing, area_mass < expected_low_overlapping_folded_leaves_area < expected" ~ "unrealiable mass and area",
+    comment == "petiole missing, area_mass < expected_mid_overlapping_folded_leaves_area < expected" ~ "unrealiable mass and area")) |>
+
+  # add flowering from remarks
+  mutate(flowering = if_else(is.na(flowering) & grepl("flower|Flower", remark), "flower", flowering)) |>
 
   # sean leaf
   filter(!ID == "HUI3674") |>
@@ -436,13 +513,16 @@ clean_traits <- clean_traits |>
          wet_mass_total_g = wet_mass_g,
          dry_mass_total_g = dry_mass_g,
          leaf_area_total_cm2 = leaf_area,
-         nr_leaves = bulk_nr_leaves) |>
+         nr_leaves_wm = bulk_nr_leaves) |>
 
   # FIX NR OF LEAVES
   # replace nr leave if NA
-  mutate(nr_leaves = ifelse(is.na(nr_leaves), number_leaf_fragments_scanned, nr_leaves)) |>
+  mutate(nr_leaves_wm = ifelse(is.na(nr_leaves_wm), number_leaf_fragments_scanned, nr_leaves_wm)) |>
+  # make variable for nr of leaves for dry mass (for lost leaves during trait wheel)
+  mutate(nr_leaves_dm = if_else(is.na(nr_leaves_dm), nr_leaves_wm, nr_leaves_dm)) |>
+
 # bulk number of leaves counted from leaf scans
-  mutate(nr_leaves = case_when(ID == "CHW9026" ~ 1,
+  mutate(nr_leaves_wm = case_when(ID == "CHW9026" ~ 1,
                                ID == "BHS3927" ~ 1,
                                ID == "AQA6446" ~ 1,
                                ID == "AIT4560" ~ 1,
@@ -458,100 +538,126 @@ clean_traits <- clean_traits |>
                                ID == "DAK3110" ~ 1,
                                ID == "CZY5489" ~ 3,
                                ID == "GPW1350" ~ 1,
-                               TRUE ~ nr_leaves)) %>%
+                               ID == "CZR5069" ~ 3,
+                               TRUE ~ nr_leaves_wm)) %>%
 
 
 
-  # Calculate average leaf thickness
-  mutate(leaf_thickness_mm = rowMeans(select(., matches("leaf_thickness_\\d_mm")), na.rm = TRUE))  |>
+
+  # Calculate nr of thickness measurements and average leaf thickness
+  rowwise() %>%
+  mutate(nr_thickness = sum(!is.na(leaf_thickness_1_mm), !is.na(leaf_thickness_2_mm), !is.na(leaf_thickness_3_mm), na.rm = TRUE)) |>
+  ungroup() %>%
+  mutate(leaf_thickness_mm = rowMeans(select(., matches("leaf_thickness_\\d_mm")), na.rm = TRUE),
+        # add comment if missing
+        comment = if_else(is.na(leaf_thickness_mm), "thickness missing", comment))  |>
   # Calculate values on the leaf level (mostly bulk samples)
-  mutate(wet_mass_g = wet_mass_total_g / nr_leaves,
-         dry_mass_g = dry_mass_total_g / dry_mass_nr_leaves,
-         leaf_area_cm2 = leaf_area_total_cm2 / nr_leaves)  |>
+  mutate(wet_mass_g = wet_mass_total_g / nr_leaves_wm,
+         dry_mass_g = dry_mass_total_g / nr_leaves_dm,
+         leaf_area_cm2 = leaf_area_total_cm2 / nr_leaves_wm)  |>
   # Calculate SLA and LDMC (replace with wet mass for now)
   mutate(sla_cm2_g = leaf_area_cm2 / dry_mass_g,
-         ldmc = dry_mass_g / wet_mass_g) #|>
-  # sort
-  select(ID, date, project, siteID, elevation_m_asl, experiment, plotID, individual_nr, taxon, nr_leaves, plant_height_cm = plant_height, wet_mass_g, dry_mass_g, leaf_area_cm2, leaf_thickness_mm, sla_cm2_g, ldmc, remark, remarks_2, dry_mass_comment, number_leaf_fragments_scanned, area_comment, scanning_comment, supporting_scanning_comment)
+         ldmc = dry_mass_g / wet_mass_g) |>
+
+  # STREAMLINE TERMINOLOGY WITH VCG, ThreeD and INCLINE
+  # make full siteID
+  mutate(siteID = recode(siteID,
+                         # old name (replace) = valid name (do not change)
+                         'Gud' = "Gudmedalen",
+                         'Ulv' = "Ulvehaugen",
+                         'Skj' = "Skjelingahaugen",
+                         'Hog' = "Hogsete",
+                         'Lia' = "Liahovden",
+                         'Vik' = "Vikesland",
+                         'Joa' = "Joasete")) |>
+  # join ThreeD metadata and fix terms
+  # plotID should be split into blockID and turfID for ThreeD
+  # experiment: ThreeD does not have experiment, but has warming, grazing and Nlevel
+  # plotID should be blockID for gradient + add 3 letters of siteID
+  # experiment should be grazing for gradient
+  mutate(blockID = if_else(project == "3D" & nchar(plotID) > 3, str_remove(plotID, "\\-.*"), NA_character_),
+         blockID = if_else(project == "3D" & nchar(plotID) < 6, plotID, NA_character_),
+         blockID = str_remove(blockID, "\\.0"),
+         turfID = if_else(project == "3D" & nchar(plotID) > 3, str_extract(plotID, "\\-.*"), NA_character_),
+         turfID = gsub("-", "", turfID),
+         plotID = if_else(project == "3D" & nchar(plotID) > 3, NA_character_, plotID),
+         plotID = as.numeric(plotID)) |>
+  left_join(meta_data_3D, by = "turfID") |>
+
+  # gradient
+  # add warming, grazing and Nlevel for the gradient
+  # make variable that defines all the plots belonging to the gradient
+  mutate(warming = if_else(project == "3D" & is.na(turfID), "A", warming),
+         grazing = if_else(project == "3D" & is.na(turfID), experiment, grazing),
+         Nlevel = if_else(project == "3D" & is.na(turfID), 0, Nlevel),
+         Namount_kg_ha_y = if_else(project == "3D" & is.na(turfID), 0, Namount_kg_ha_y),
+         gradient = if_else(project == "3D" & warming == "A" & Nlevel < 4, "gradient", NA_character_)) |>
+
+  # Incline terminology
+  # make experiment column OTC with W and C
+  mutate(OTC = if_else(project == "Incline", experiment, NA_character_),
+         OTC = recode(OTC, "OCT" = "W"),
+         blockID = if_else(project == "Incline", paste(substr(siteID, 1, 3), plotID, sep = "_"), blockID),
+         plotID = if_else(project == "Incline", NA_real_, plotID))
+
+  # select and sort
+  select(ID, date, project, siteID, elevation_m_asl, blockID, OTC, warming, grazing, Nlevel, Namount_kg_ha_y, individual_nr, species = taxon, nr_leaves_wm, nr_leaves_dm, plant_height_cm = plant_height, wet_mass_g, dry_mass_g, leaf_area_cm2, leaf_thickness_mm, sla_cm2_g, ldmc, flag, comment, remark, remark_dry_mass, number_leaf_fragments_scanned, scanning_comment)
 
 #clean_traits |> filter(ID == "AQK5961") |> as.data.frame()
 
 write_csv(clean_traits, file = "clean_data/PFTC6_clean_leaf_traits_2022.csv")
 
+
+
+# Problems that cannot be fixed
+# 85 have no area, 12 with corrupt scan
+# leaves that cannot be matched:
+# out.jpeg from day 27, 1 leaf Pot.ere
+# out.jpeg from day 28, 1 leaf Alc.alp
+# out.jpeg from day 2, 3 leaves Alc.alp
+# EOP1516, a grass, 2 leaves, probably Agrostis
+# GAL3376, Sib.pro, 2 leaves
+
+
 #_______________________________________________________________________________
 
+
+
+
+### TO DO:
 ### PROBLEMS
-# DJD3630 missing experiment -> probably C, need to fix plotID -> need to find out if 4 inds in here
-# Joshua says experiment -> OTC
-clean_traits |>
-  filter(siteID == "Gud", taxon == "Campanula rotundifolia") |>
-  arrange(plotID, experiment, individual_nr) |>
-  as.data.frame()
-# DLL3549: missing plotID, maybe 6 -> find out if this one exists
-clean_traits |>
-  filter(siteID == "Gud", taxon == "Poa alpina", experiment == "OTC") |>
-  arrange(plotID, individual_nr) |>
-  as.data.frame()
 
-# apperently not existing plots: Skj 3,4,7 and Ulv 2, Bl5.
-clean_traits |>
-  filter((siteID == "Skj" & plotID %in% c("3.0", "4.0", "7.0")) |
-           (siteID == "Ulv" & plotID %in% c("2.0", "5.0"))) |>
-  count(siteID, plotID)
+# a bit uncertain if match is correct
+# 5  3323 raw_data/traits/pftc6_leaf_scans/2022-07-30 out       2    16.1 -> 2 leaves ach millefolium -> can be BGW5255, but seems to be a bit off
 
 
+# outliers
+# 1 x thickness
+clean_traits2 |>
+  ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_2_mm, colour = siteID)) +
+  geom_point()
 
-#EVU9278 missing plotID and ind nr, could be 1-3 WN1C 85, because is missing ind 3
-clean_traits |>
-  filter(siteID == "Joa", taxon == "Sibbaldia procumbens") |>
-  arrange(plotID, individual_nr) |>
-  as.data.frame()
-#EXQ7925 difficult, could be one of those 1-88 AN1N 88, 4-29 WN3C 106
-clean_traits |>
-  filter(siteID == "Joa", taxon == "Festuca rubra") |>
-  arrange(plotID, individual_nr) |> View()
+clean_traits2 |> filter(leaf_thickness_1_mm < 0.5 & leaf_thickness_2_mm > 0.75) |> as.data.frame()
+# CKE1363 LT2 and LT3 might be a bit high
+clean_traits2 |> filter(taxon == "Festuca rubra") |> ggplot(aes(x = leaf_thickness_mm)) + geom_histogram()
 
-# LA and dry mass
-clean_traits |> filter(ID == "EGN0308_2")
-# only in leaf area, but not in clean traits
-# EOP1516   a grass
-# GAL3376: sibbaldia, but we have 4 sibbaldia with 2 leaves
-# EDJ2892: Saussurea alpina 1 leaf, could be GJN2296
-# EGN0308_2 wrong ID Viola bistorta could be EGR7522
+# sla huge
+clean_traits2 |>
+  ggplot(aes(x = dry_mass_g, y = sla_cm2_g, shape = siteID, colour = sla_cm2_g > 500)) +
+  geom_point()
+clean_traits2 |> filter(sla_cm2_g > 1000) |> select(ID:plotID, dry_mass_g, wet_mass_g, ldmc, leaf_area_cm2, sla_cm2_g, comment, flag)
 
-# missing data
-clean_traits |> filter(is.na(dry_mass_total_g)) # 2 leaves
-# add comment for missing area, mass, height etc.
-# do something with all the comment columns
+clean_traits2 |>
+  ggplot(aes(x = dry_mass_g, y = ldmc, colour = sla_cm2_g > 1000)) +
+  geom_point()
 
-names(clean_traits)
-clean_traits |> select(remark, remarks_2, dry_mass_comment, area_comment, scanning_comment, supporting_scanning_comment) |>
-  count(dry_mass_comment) |> print(n = Inf)
 
-# merge remark and remarks_2
-clean_traits |> select(ID, taxon, nr_leaves, dry_mass_comment) |>
-  filter(!is.na(dry_mass_comment)) |> print(n = Inf)
-
-# 76 leaves!!!
-clean_traits |> filter(is.na(leaf_area_cm2), !grepl("corrupt", area_comment)) |> distinct(ID, area_comment) |> arrange(ID) |> print(n = Inf)
-clean_traits |> filter(ID == "HIW1048") |> as.data.frame()
-# CXN4455 has comment not scanned
-# GQK9871 has comment not scanned
-
-leaf_area |> filter(grepl("DYL", ID)) |> select(ID)
 # area correction
 # AEE2091
 # AFT5418
 # ANN5578
 # CRU9872
 # DYL5087
-
-# leaf area issues: how did you save the scans after correcting? -> needs checking
-
-# 13 AIG8684 Potentilla erecta              2 may be missing some material
-
-# go through all remark, remarks_2 and merge all the comments
-# make 1 relevant comment column
 
 
 #_______________________________________________________________________________
@@ -560,52 +666,43 @@ leaf_area |> filter(grepl("DYL", ID)) |> select(ID)
 
 # some outliers for area vs mass
 # looks good
-clean_traits |>
+clean_traits2 |>
   ggplot(aes(x = leaf_area_cm2, y = dry_mass_g, colour = siteID)) +
   geom_point()
 
-# DVI2460 has large wet mass, but cannot find envelop to check!
-# strange cloud with low LA values
-clean_traits |>
+clean_traits2 |>
   ggplot(aes(x = leaf_area_cm2, y = wet_mass_g, colour = siteID)) +
   geom_point()
 
-clean_traits |>
+clean_traits2 |>
   ggplot(aes(x = dry_mass_g, y = wet_mass_g, colour = taxon)) +
   geom_point() +
   theme(legend.position = "none")
 
-# 2 strange values
-clean_traits |>
+# 1 strange value
+clean_traits2 |>
   ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_2_mm, colour = siteID)) +
   geom_point()
 
-clean_traits |> filter(leaf_thickness_1_mm < 0.5 & leaf_thickness_2_mm > 0.75) |> as.data.frame()
-# CKE1363 LT2 and 3 might be a bit high
-clean_traits |> filter(taxon == "Festuca rubra") |> ggplot(aes(x = leaf_thickness_mm)) + geom_histogram()
-# CXL2586: LT1 0.073?
-clean_traits |> filter(leaf_thickness_1_mm > 0.7 & leaf_thickness_2_mm < 0.25) |> as.data.frame()
-
-
 # looks good!
-clean_traits |>
+clean_traits2 |>
   ggplot(aes(x = leaf_thickness_2_mm, y = leaf_thickness_3_mm, colour = siteID)) +
   geom_point()
 
-clean_traits |>
+clean_traits2 |>
   ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_3_mm, colour = siteID)) +
   geom_point()
 
 
 # no ldmc problems!!!
-clean_traits |>
+clean_traits2 |>
   ggplot(aes(x = dry_mass_g, y = ldmc, shape = siteID, colour = ldmc > 1)) +
   geom_point()
 
-clean_traits |>
+clean_traits2 |>
   ggplot(aes(x = dry_mass_g, y = sla_cm2_g, shape = siteID, colour = sla_cm2_g > 500)) +
   geom_point()
-clean_traits |> filter(sla_cm2_g > 500) |> select(ID:plotID, dry_mass_total_g, wet_mass_total_g, ldmc, leaf_area_cm2, sla_cm2_g)
+clean_traits2 |> filter(sla_cm2_g > 1000) |> select(ID:plotID, dry_mass_g, wet_mass_g, ldmc, leaf_area_cm2, sla_cm2_g, comment, flag)
 
 
 data <- clean_traits
