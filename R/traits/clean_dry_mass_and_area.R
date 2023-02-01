@@ -66,16 +66,19 @@ dry_mass <- raw_dry_mass |>
                                 ID %in% c("DUJ7316", "DYF2988") ~ "petiole missing, dry mass < expected",
                                 ID == "BJA1904" ~ "part of petiole gone, dry mass < expected",
                                 ID %in% c("CYF1214", "CYF1214") ~ "missing some petioles, dry mass < expected",
-                                ID == "GLC4523" ~ "Wet mass maybe off due to moss, wet mass maybe > expected",
+                                ID == "GLC4523" ~ "Wet mass maybe off due to moss, wet mass > expected",
+                                # damage
+                                grepl("bud", remark_dry_weighing) ~ "damage_herbivory",
+                                grepl("tip has come off|Tip missing", remark_dry_weighing) ~ "damage",
 
                                 # add comment when leaves were lost
                                 ID %in% c("BPT4152", "AND1627", "BJU6449", "BDV3827", "ABC7502", "CIO0085", "CYJ9702", "EKL8440", "CZR5069", "BRM7672", "DVJ8460", "GTW7354", "DQC4298", "HWP9676", "EZC2758", "INR2799", "EYP6103", "HEP4020", "DVR2576", "IIB8454", "IKE6687", "HNC6175", "CYW3541") ~ "some leaves gone, recalculate dry mass",
 
                                 # Issues for all traits: petiole missing completely
-                                ID %in% c("CCM5009", "CXO0734", "CJS6825", "DUJ7316", "IFF0615", "CXI4978", "CXM3140", "CUL6951", "DUT0110", "APL1495", "APP3418", "AQI0874") ~ "petiole missing"),
+                                ID %in% c("CCM5009", "CXO0734", "CJS6825", "DUJ7316", "IFF0615", "CXI4978", "CXM3140", "CUL6951", "DUT0110", "APL1495", "APP3418", "AQI0874") ~ "petiole missing, area_mass < expected"),
 
          # fix nr of leaves for dry mass
-         dry_mass_nr_leaves = case_when(ID == "BPT4152" ~ 4,
+         nr_leaves_dm = case_when(ID == "BPT4152" ~ 4,
                                         ID == "AND1627" ~ 3,
                                         ID == "BJU6449" ~ 7,
                                         ID == "BDV3827" ~ 2,
@@ -98,6 +101,8 @@ dry_mass <- raw_dry_mass |>
                                         ID == "IIB8454" ~ 5,
                                         ID == "IKE6687" ~ 1,
                                         ID == "HNC6175" ~ 4,
+                                        ID == "CHW9026" ~ 1,
+                                        ID == "BHS3927" ~ 1,
                                         FALSE ~ NA_real_
                                         )) |>
   select(-notes)
@@ -156,6 +161,9 @@ corrected_area <- raw_leaf_area_corrected |>
                                   str_detect(dir, "Susan") ~ "removed foreign object",
          str_detect(dir, "cropping") ~ "additional scan cropping"),
          ID = str_remove(ID, "_edited")) |>
+  # remove area correction for DVA0594, otherwise mass area ratio is bad
+  # ADG7762: do not use correction, removes leaf sheath, but anyway invisible, so needs only comment that mass area ratio might be wrong
+  filter(!ID %in% c("DVA0594", "ADG7762")) |>
   select(-dir, -...1) |>
   rename(corrected_area = leaf_area, corrected_n = n)
 
@@ -209,7 +217,11 @@ leaf_area <- raw_leaf_area |>
                         ID == "AGJ3840A" ~ "AGJ3840",
                         ID == "DOI4478-1" ~ "DOI4478",
                         ID == "GYA4910G" ~ "GYA4910",
+                        ID == "EDJ2892" ~ "GJN2296",
+                        ID == "EGN0308_2" ~ "EGR7522",
+                        ID == "out" & dir == "raw_data/traits/pftc6_leaf_scans/2022-07-30" ~ "BGW5255",
                         TRUE ~ ID)) |>
+
   # remove duplicates = scans from different days.
   # Probably not removed from folder for next day.
   group_by(ID, leaf_area) |>
@@ -260,30 +272,18 @@ leaf_area <- raw_leaf_area |>
                                   grepl("frost damage", supporting_scanning_comment) ~ "damage_frost",
                                   grepl("dark spots", supporting_scanning_comment) ~ "damage_spots",
                                   is.na(area_comment) & scanning_comment == "Damaged_leaf" ~ "damage",
+                                  # comment for missing areas that were matched
+                                  ID %in% c("GJN2296", "EGR7522", "BGW5255") ~ "leaf area from one leaf was matched to leaf with missing area",
                                   TRUE ~ area_comment),
          area_comment = tolower(area_comment)) |>
   # clean up comments
   mutate(scanning_comment = if_else(!is.na(supporting_scanning_comment), paste(scanning_comment, supporting_scanning_comment, sep = "_"), scanning_comment)) |>
-  select(-supporting_scanning_comment)
-
+  select(-supporting_scanning_comment) |>
+  rename(comment_area = area_comment)
 
 
 # Code to check stuff
 # valid_codes |> filter(grepl("EOP", hashcode))
 # leaf_area |> filter(grepl("CQF", ID))
 #clean_traits |> filter(grepl("BKT7468", ID))
-
-
-### TO DO:
-# wrong ID: EGN0308_2
-# DEAL WITH OUT SCANS
-# out, out_2
-# Sean leaves: day 26 out, day 27 out and out_2, day 2 out
-# 4  1383 raw_data/traits/pftc6_leaf_scans/2022-07-26 out       8    12.7 -> 3 leaves alch alpina
-# 2  2757 raw_data/traits/pftc6_leaf_scans/2022-07-28 out       7     5.38 -> 1 leaf alch alpina
-# 2  2644 raw_data/traits/pftc6_leaf_scans/2022-07-28 EGN0308_2     5      5.88 -> 2 leavse viola biflora (maybe palustris)
-# 5  3323 raw_data/traits/pftc6_leaf_scans/2022-07-30 out       2    16.1 -> 2 leaves ach millefolium
-
-# Foreign obj fine except 3 below
-# CFT6236 and CHX5100, DVA0594, BEO9188: sheets were painted out, so potentially problem for mass -> exclude?
 
