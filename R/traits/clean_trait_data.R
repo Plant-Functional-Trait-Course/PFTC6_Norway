@@ -271,12 +271,12 @@ clean_traits <- raw_traits %>%
 #   arrange(siteID, taxon, experiment, plotID, individual_nr)
 
 # Use dataDocumentation package
-meta_data_3D <- create_threed_meta_data()
+meta_data_3D <- create_threed_meta_data() |>
+  select(turfID, warming, grazing, Nlevel, Namount_kg_ha_y)
 # this can correct some of the plotID issues
 
 
 clean_traits <- clean_traits %>%
-
   ## PlotID
   mutate(plotID = case_when(plotID =="B2" ~ "2.0",
                             plotID =="B3" ~ "3.0",
@@ -285,11 +285,11 @@ clean_traits <- clean_traits %>%
                             plotID =="NA"~ NA_character_,
                             TRUE ~ plotID)) |>
   mutate(plotID = case_when(remark == "1 85 WN1C 167" ~ "1-85 WN1C 162", # corrected to metadata
-                            remark == "5-57AN8C 57" ~ "8-57AN8C 57", # says 5-57 but no 5-57 in metadata so changed to 8
+                            remark == "5-57AN8C 57" ~ "8-57 AN8C 57", # says 5-57 but no 5-57 in metadata so changed to 8
                             remark == "Plot ID on envelope is 10-75-AN3N-79" ~ "10-79 AN2N 79", # has to be this one
                             remark == "Plot ID: WN3CN 112" ~ "4-32 WN3N 112",
-                            remark == "Plot ID: 7-109AN3C 109" ~ "4-109AN3C 109", # corrected number
-                            remark == "Plot ID: 4-105AN3C 109" ~ "4-109AN3C 109",
+                            remark == "Plot ID: 7-109AN3C 109" ~ "4-109 AN3C 109", # corrected number
+                            remark == "Plot ID: 4-105AN3C 109" ~ "4-109 AN3C 109",
                             TRUE ~ plotID),
          plotID = ifelse(ID == "CIO0085","2.0",plotID)) |>
   # remove wrong plants with no trait measurements
@@ -570,18 +570,19 @@ clean_traits2 <- clean_traits |>
                          'Lia' = "Liahovden",
                          'Vik' = "Vikesland",
                          'Joa' = "Joasete")) |>
+
+
+
   # join ThreeD metadata and fix terms
   # plotID should be split into blockID and turfID for ThreeD
   # experiment: ThreeD does not have experiment, but has warming, grazing and Nlevel
   # plotID should be blockID for gradient + add 3 letters of siteID
   # experiment should be grazing for gradient
   mutate(blockID = if_else(project == "3D" & nchar(plotID) > 3, str_remove(plotID, "\\-.*"), NA_character_),
-         blockID = if_else(project == "3D" & nchar(plotID) < 6, plotID, NA_character_),
+         blockID = if_else(project == "3D" & nchar(plotID) < 6, plotID, blockID),
          blockID = str_remove(blockID, "\\.0"),
          turfID = if_else(project == "3D" & nchar(plotID) > 3, str_extract(plotID, "\\-.*"), NA_character_),
-         turfID = gsub("-", "", turfID),
-         plotID = if_else(project == "3D" & nchar(plotID) > 3, NA_character_, plotID),
-         plotID = as.numeric(plotID)) |>
+         turfID = gsub("-", "", turfID)) |>
   left_join(meta_data_3D, by = "turfID") |>
 
   # gradient
@@ -596,17 +597,37 @@ clean_traits2 <- clean_traits |>
   # Incline terminology
   # make experiment column OTC with W and C
   mutate(OTC = if_else(project == "Incline", experiment, NA_character_),
-         OTC = recode(OTC, "OCT" = "W"),
-         blockID = if_else(project == "Incline", paste(substr(siteID, 1, 3), plotID, sep = "_"), blockID),
-         plotID = if_else(project == "Incline", NA_real_, plotID))
+         OTC = recode(OTC, "OTC" = "W"),
+         plotID = if_else(project == "Incline", str_remove(plotID, "\\.0"), plotID),
+         blockID = if_else(project == "Incline" & !is.na(plotID), paste(substr(siteID, 1, 3), plotID, sep = "_"), blockID)) |>
+  rename(plant_height_cm = plant_height) |>
 
+  # make table long
+  pivot_longer(cols = c(plant_height_cm, wet_mass_g, dry_mass_g, leaf_area_cm2, leaf_thickness_mm, ldmc, sla_cm2_g), names_to = "trait", values_to = "value") |>
+
+  #log transform size and area traits
+  mutate(value_trans = if_else(
+    trait %in% c("plant_height_cm", "wet_mass_g", "dry_mass_g", "leaf_area_cm2", "leaf_thickness_mm"),
+    true = suppressWarnings(log(value)),# suppress warnings from log(-value) in isotopes (these are calculated but not kept)
+    false = value),
+  trait_trans = recode(trait,
+    "plant_height_cm" = "plant_height_log_cm",
+    "wet_mass_g" = "wet_mass_log_g",
+    "dry_mass_g" = "dry_mass_g_log",
+    "leaf_area_cm2" = "leaf_area_log_cm2",
+    "leaf_thickness_mm" = "leaf_thickness_log_mm")) |>
   # select and sort
-  select(ID, date, project, siteID, elevation_m_asl, blockID, OTC, warming, grazing, Nlevel, Namount_kg_ha_y, individual_nr, species = taxon, nr_leaves_wm, nr_leaves_dm, plant_height_cm = plant_height, wet_mass_g, dry_mass_g, leaf_area_cm2, leaf_thickness_mm, sla_cm2_g, ldmc, flag, comment, remark, remark_dry_mass, number_leaf_fragments_scanned, scanning_comment)
-
-#clean_traits |> filter(ID == "AQK5961") |> as.data.frame()
+  select(ID, date, project, gradient, siteID, elevation_m_asl, blockID, turfID, OTC, warming, grazing, Nlevel, Namount_kg_ha_y, individual_nr, species = taxon,
+         trait, value, trait_trans, value_trans,
+         comment, flag,
+         # useful variables
+         flowering, nr_leaves_wm, nr_leaves_dm, number_leaf_fragments_scanned, nr_thickness,
+         # remove 3 x thickness once data is properly checked
+         leaf_thickness_1_mm, leaf_thickness_2_mm, leaf_thickness_3_mm,
+         wet_mass_total_g, dry_mass_total_g, leaf_area_total_cm2,
+         remark, remark_dry_mass, scanning_comment)
 
 write_csv(clean_traits, file = "clean_data/PFTC6_clean_leaf_traits_2022.csv")
-
 
 
 # Problems that cannot be fixed
@@ -652,14 +673,6 @@ clean_traits2 |>
   geom_point()
 
 
-# area correction
-# AEE2091
-# AFT5418
-# ANN5578
-# CRU9872
-# DYL5087
-
-
 #_______________________________________________________________________________
 
 #### CHECKING DATA, OUTLIERS ETC. ####
@@ -694,7 +707,7 @@ clean_traits2 |>
   geom_point()
 
 
-# no ldmc problems!!!
+# looks good
 clean_traits2 |>
   ggplot(aes(x = dry_mass_g, y = ldmc, shape = siteID, colour = ldmc > 1)) +
   geom_point()
