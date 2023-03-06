@@ -43,3 +43,4 @@ stuff/*
 
 # R Environment Variables
 .Renviron
+.Rdata
