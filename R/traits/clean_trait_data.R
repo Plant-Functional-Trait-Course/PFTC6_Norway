@@ -272,7 +272,7 @@ clean_traits <- raw_traits %>%
 
 # Use dataDocumentation package
 meta_data_3D <- create_threed_meta_data() |>
-  select(turfID, warming, grazing, Nlevel, Namount_kg_ha_y)
+  select(turfID, warming, grazing, Nlevel, Namount_kg_ha_y, origSiteID, destSiteID)
 # this can correct some of the plotID issues
 
 
@@ -417,7 +417,7 @@ source("R/traits/clean_dry_mass_and_area.R")
 #   anti_join(Sean, by = "ID")
 # out, out_2, EDJ2892, EGN0308_2, EOP1516, GAL3376
 
-clean_traits2 <- clean_traits |>
+clean_traits <- clean_traits |>
   # join dry mass and area
   left_join(dry_mass, by = "ID") |>
   left_join(leaf_area, by = "ID") |>
@@ -595,9 +595,9 @@ clean_traits2 <- clean_traits |>
          gradient = if_else(project == "3D" & warming == "A" & Nlevel < 4, "gradient", NA_character_)) |>
 
   # Incline terminology
-  # make experiment column OTC with W and C
-  mutate(OTC = if_else(project == "Incline", experiment, NA_character_),
-         OTC = recode(OTC, "OTC" = "W"),
+  # make experiment column warming with W and C
+  mutate(warming = if_else(project == "Incline", experiment, warming),
+         warming = recode(warming, "OTC" = "W"),
          plotID = if_else(project == "Incline", str_remove(plotID, "\\.0"), plotID),
          blockID = if_else(project == "Incline" & !is.na(plotID), paste(substr(siteID, 1, 3), plotID, sep = "_"), blockID)) |>
   rename(plant_height_cm = plant_height) |>
@@ -617,8 +617,9 @@ clean_traits2 <- clean_traits |>
     "leaf_area_cm2" = "leaf_area_log_cm2",
     "leaf_thickness_mm" = "leaf_thickness_log_mm")) |>
   # select and sort
-  select(ID, date, project, gradient, siteID, elevation_m_asl, blockID, turfID, OTC, warming, grazing, Nlevel, Namount_kg_ha_y, individual_nr, species = taxon,
+  select(ID, date, project, gradient, siteID, elevation_m_asl, blockID, turfID, warming, grazing, Nlevel, Namount_kg_ha_y, individual_nr, species = taxon,
          trait, value, trait_trans, value_trans,
+         origSiteID, destSiteID,
          comment, flag,
          # useful variables
          flowering, nr_leaves_wm, nr_leaves_dm, number_leaf_fragments_scanned, nr_thickness,
