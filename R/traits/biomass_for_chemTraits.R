@@ -1,53 +1,100 @@
 ### Checking biomass dry weight for chemical trait analysis
 
 # Load libraries
-library(tidyverse)
-library(readxl)
+source("R/load_libraries.R")
 
 # import data
-# Here I have saved the cleaned trait data into two files and then I recombine them in R again to calculate how many samples need to be merged
-dry_mass <- read_excel(path = "clean_data/traits/PFTC6_Norway_traits_DW_clean_2022.xlsx")
-cleaned_traits <- read_excel(path = "clean_data/traits/PFTC6_Norway_traits_clean_2022.xlsx")
+traits <- read_csv(file = "clean_data/PFTC6_clean_leaf_traits_2022.csv")
 
-# Minimum dry mass needed in g
-minDW = 0.03
+# Minimum dry mass needed for CNP analysis in g
+# 1.5 - 1.7 mg for CN + isotopes
+# 3 sub-samples of 3.5 to 4 mg for phosphorus (12 mg)
+minDW_cn = 0.004
+minDW_cnp = 0.014
+
+# Function to get the number of batches per plot and species
+get_chem_trait_batch <- function(x, minDW, i = 1){
+  if(length(x) == 0) return()
+  # get cumsum of mass
+  cx <- cumsum(x)
+  # if not enough mass give NA
+  if(max(cx) < minDW) return(rep(NA, times = length(x)))
+  # put all the leaves in the same batch unitl minDW is reached
+  batch <- which.max(cx > minDW)
+
+  # recursive function (= calling own function again on the rest of the data)
+  c(rep(i, times = batch), get_chem_trait_batch(x[(1:length(x)) > batch], minDW, i = i + 1))
+
+}
+
 
 # Check for each value if enough material
-dry_mass_min <- dry_mass %>%
-  mutate(minimum_chemTraitDW = if_else(dry_mass >= minDW, T, F))
+wide_traits <- traits %>%
+  select(ID:species, nr_leaves_wm, nr_leaves_dm, trait, value, comment, flag) |>
+  pivot_wider(names_from = trait, values_from = value) |>
+  # remove leaves where dry mass is missin
+  filter(!is.na(dry_mass_g))
 
-# combine DW data and cleaned trait data
-clean_traits_DW <- left_join(cleaned_traits, dry_mass_min, by = "ID")
+# Only cn analysis (not used)
+# cn_traits <- wide_traits |>
+#   # group by plot and species and arrange by mass
+#   arrange(project, siteID, blockID, warming, grazing, Nlevel, species, -dry_mass_g) |>
+#   group_by(project, siteID, blockID, warming, grazing, Nlevel, species) |>
+#   # get cumsum and
+#   mutate(cum_mass = cumsum(dry_mass_g),
+#          batchNR = get_chem_trait_batch(x = dry_mass_g, minDW = minDW_cn)) |>
+#   group_by(project, siteID, blockID, warming, grazing, Nlevel, species, batchNR) |>
+#   mutate(chemID = if_else(!is.na(batchNR), str_c(ID, collapse = "_"), NA_character_)) |>
+#   select(ID:species, dry_mass_g, cum_mass, batchNR, chemID, everything())
 
-# Check if there is too little material if the sample can be merged with another sample from the same project, site, treatment, and plot
+# cnp analysis
+cnp_traits <- wide_traits |>
+  # group by plot and species and arrange by mass
+  arrange(project, siteID, blockID, warming, grazing, Nlevel, species, -dry_mass_g) |>
+  group_by(project, siteID, blockID, warming, grazing, Nlevel, species) |>
+  # get cumsum and
+  mutate(cum_mass = cumsum(dry_mass_g),
+         batchNR = get_chem_trait_batch(x = dry_mass_g, minDW = minDW_cnp)) |>
+  group_by(project, siteID, blockID, warming, grazing, Nlevel, species, batchNR) |>
+  mutate(chemID = if_else(!is.na(batchNR), str_c(ID, collapse = "_"), NA_character_)) |>
+  select(ID:species, dry_mass_g, cum_mass, batchNR, chemID, everything())
 
-# Small samples
-# Total DW when all combined
-DW_small.1 <- clean_traits_DW %>%
-  filter(minimum_chemTraitDW==F) %>%
-  group_by(project, siteID, experiment, taxon) %>%
-  summarise(sumS = sum(dry_mass))
-# number of samples below the threshold
-DW_small.2 <- clean_traits_DW %>%
-  filter(minimum_chemTraitDW==F) %>%
-  group_by(project, siteID, experiment, taxon) %>%
-  summarise(amountS = n())
+# for 3D because we want Namount not Nlevel
+cnp_traits_3D <- wide_traits |>
+  # group by plot and species and arrange by mass
+  arrange(project, siteID, blockID, warming, grazing, Namount_kg_ha_y, species, -dry_mass_g) |>
+  group_by(project, siteID, blockID, warming, grazing, Namount_kg_ha_y, species) |>
+  # get cumsum and
+  mutate(cum_mass = cumsum(dry_mass_g),
+         batchNR = get_chem_trait_batch(x = dry_mass_g, minDW = minDW_cnp)) |>
+  group_by(project, siteID, blockID, warming, grazing, Nlevel, species, batchNR) |>
+  mutate(chemID = if_else(!is.na(batchNR), str_c(ID, collapse = "_"), NA_character_)) |>
+  select(ID:species, dry_mass_g, cum_mass, batchNR, chemID, everything())
 
-# How much material and how many samples are above the threshold
-DW_big.1 <- clean_traits_DW %>%
-  filter(minimum_chemTraitDW==T) %>%
-  group_by(project, siteID, experiment, taxon) %>%
-  summarise(sumB = sum(dry_mass))
-DW_big.2 <- clean_traits_DW %>%
-  filter(minimum_chemTraitDW==T) %>%
-  group_by(project, siteID, experiment, taxon) %>%
-  summarise(amountB = n())
 
-# Combine and determine max theoretical amount of samples after merging (merges_amount) and total samples incl. where enough (total_wMerge)
-DW_both <- left_join(DW_big.1, DW_big.2, by = c("project", "siteID", "experiment", "taxon")) %>%
-  left_join(.,DW_small.1, by = c("project", "siteID", "experiment", "taxon")) %>%
-  left_join(.,DW_small.2, by = c("project", "siteID", "experiment", "taxon")) %>%
-  add_column(merges_amount = .$sumS / minDW) %>%
-  mutate(merges_amount = trunc(merges_amount)) %>%
-  mutate(total_wMerge = amountB + if_else(is.na(merges_amount), 0, merges_amount))
-view(DW_both)
+# select 3 for 3D and 6 for incline
+cnp_traits_3D |>
+  select(project, gradient, siteID, blockID, turfID, warming, grazing, Namount_kg_ha_y, individual_nr, ID, species, batchNR, chemID, dry_mass_g, cum_mass) |> ungroup() |>
+  filter(project == "3D",
+         Namount_kg_ha_y == 0,
+         grazing == "C",
+         !is.na(batchNR)) |>
+  ungroup() |>
+  group_by(project, siteID, blockID, turfID, warming, grazing, Namount_kg_ha_y, species) |>
+  # three individuals per site, species and treatment
+  filter(batchNR <= 3) |>
+  ungroup() |>
+  arrange(siteID, blockID, warming, grazing, Namount_kg_ha_y, turfID, species) |>
+  write_csv("PFTC6_3D_cnp_traits_warmingTreatment_2-may-2023.csv")
+
+cnp_traits |>
+  ungroup() |>
+  select(project, siteID, blockID, warming, individual_nr, ID, species, batchNR, chemID, dry_mass_g, cum_mass) |>
+  filter(project == "Incline",
+         !is.na(batchNR)) |>
+  group_by(project, siteID, blockID, warming, species) |>
+  # six individuals per site, species and treatment
+  filter(batchNR <= 6) |>
+  ungroup() |>
+  arrange(siteID, blockID, warming, species, batchNR) |>
+  write_csv("PFTC6_Incline_cnp_traits2_2-may-2023.csv")
