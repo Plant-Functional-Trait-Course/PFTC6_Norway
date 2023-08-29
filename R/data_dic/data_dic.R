@@ -8,8 +8,6 @@ library(writexl)
 # load clean data
 source("R/data_dic/download_clean_data.R")
 
-# data dictionary function
-source("R/data_dic/make_data_dictionary.R")
 
 # read in data description table
 description_table <- read_excel("R/data_dic/data_description.xlsx") %>%
@@ -17,40 +15,28 @@ description_table <- read_excel("R/data_dic/data_description.xlsx") %>%
 
 #************************************************************************
 #************************************************************************
-### 1 Dataset 1
+### Traits
 
-data_1 <- read_csv("clean_data/...")
-
-
-data_1_dic <- make_data_dictionary(data = data_1,
-                                      description_table = description_table,
-                                      table_ID = NA_character_)
+incline_traits <- read_csv("clean_data/PFTC6_Incline_clean_leaf_traits_2022.csv")
 
 
-#************************************************************************
-### 2 Dataset 2
-
-data_2 <- read_csv("clean_data/...")
-
-
-data_2_dic <- make_data_dictionary(data = data_2,
-                                    description_table = description_table,
-                                    table_ID = NA_character_)
+trait_dic_I <- make_data_dictionary(data = incline_traits,
+                                   description_table = description_table,
+                                   table_ID = "Incline")
 
 
-#************************************************************************
+threeD_traits <- read_csv("clean_data/PFTC6_ThreeD_clean_leaf_traits_2022.csv")
 
-### Add all data sets
-
+trait_dic_3D <- make_data_dictionary(data = threeD_traits,
+                                   description_table = description_table,
+                                   table_ID = "ThreeD")
 
 #************************************************************************
 
 ##merge all dics together to one xlsx, with each parameter as a single sheet
 
-write_xlsx(list(data_1 = data_1_dic,
-                data_2 = data_2_dic,
-                ...
-                ),
+write_xlsx(list(trait_I = trait_dic_I,
+                trait_3D = trait_dic_3D),
            path = "R/data_dic/data_dictionary.xlsx")
 
 
