@@ -1,4 +1,4 @@
-#### Download and import meta data from OSF ####
+#### Download, import and clean trait data ####
 
 trait_plan <- list(
 
