@@ -16,12 +16,11 @@
 data/*
 clean_data/*
 raw_data/*
-stuff/*
+course stuff/*
+other code/*
 *.csv
 *.xls
 *.xlsx
-
-!R/data_dic/data_description.xlsx
 
 #figures & output
 *.png
@@ -44,3 +43,14 @@ stuff/*
 # R Environment Variables
 .Renviron
 .Rdata
+
+
+# targets
+_targets_packages.R
+_targets
+_targets.R
+_targets.Rmd
+_targets_r
+_targets.yaml
+run.R
+run.sh
