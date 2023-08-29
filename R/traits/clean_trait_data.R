@@ -87,7 +87,8 @@ clean_traits <- raw_traits %>%
   # fix siteID
   mutate(siteID = if_else(siteID == "vik", "Vik", siteID),
          siteID = if_else(ID == "BIE2833", "Ulv", siteID),
-         siteID = if_else(ID == "BPC8034", "Hog", siteID)) |>
+         siteID = if_else(ID == "BPC8034", "Hog", siteID),
+         siteID = if_else(ID == "DPV2188", "Skj", siteID)) |>
 
   # Fix days and siteID
   mutate(day = case_when( siteID == "Ulv" & project == "Incline" ~ 24,
@@ -430,77 +431,48 @@ clean_traits <- clean_traits |>
   # remove wrong species
   filter(!grepl("Wrong Species|wrong species|WRONG SPECIES", remark)) |>
 
+
   # FIX COMMENTS
-  # missing data
-  mutate(comment_dm = if_else(is.na(dry_mass_g), paste0(comment_dm, "_dry mass missing"), comment_dm),
-         comment_dm = if_else(is.na(wet_mass_g), paste0(comment_dm, "_wet mass missing"), comment_dm),
-         comment_dm = if_else(is.na(plant_height), paste0(comment_dm, "_height missing"), comment_dm),
-         comment_area = if_else(is.na(leaf_area), paste0(comment_area, "_area missing"), comment_area),
-         # missing info that cannot be solved
-         # DLL3549, EVU9278, EXQ7925
-         comment_area = if_else(is.na(plotID), "missing plotID", comment_area),
+  # missing info that cannot be solved
+  # DLL3549, EVU9278, EXQ7925
+  mutate(comment_area = if_else(is.na(plotID), "missing plotID", comment_area),
          comment_area = if_else(ID == "EVU9278", "missing plotID and ind_nr", comment_area)) |>
   rename(remark_dry_mass = remark_dry_weighing) |>
   # add comment to scans that did not work
   mutate(comment_area = if_else(ID %in% c("ACZ3726", "AGG5788", "BFQ1216", "BFR1655", "BPQ4029", "DBV4120", "DTS3934", "GYL1269", "HLM0330", "IFW2666", "IHS9389", "ILK6566"), "scan corrupt_area missing", comment_area)) |>
 
   # other problems
-  mutate(comment_area = case_when(grepl("fungus", remark) ~ "damage_spots",
-                                  grepl("frozen!", remarks_2) ~ "damage_frost",
-                                  ID %in% c("EIZ1694", "CZR5069") ~ "wet mass when dry_wet mass < expected",
-                                  comment_area == "NA_area missing" ~ "area missing",
-                                  ID == "DVA0594" ~ "including sheath_mass area > expected",
-                                  ID == "ADG7762" ~ "including sheath_mass area > expected",
+  mutate(comment_area = case_when(grepl("fungus", remark) ~ "leaf damage, potential mass and area problem",
+                                  grepl("frozen!", remarks_2) ~ "leaf damage, potential mass and area problem",
+                                  grepl("a bug was hungry and took a bite of the leaf -jn|brown tps only avalable/", remark) ~ "leaf damage, potential mass and area problem",
+                                  ID == "ADG7762" ~ "corrected invisible area",
                                   TRUE ~ comment_area),
 
-         comment_dm = case_when(ID %in% c("GWT1967", "GUH1653") ~ "flattened for thickness measure_thickness",
-                                ID %in% c("DVQ3484", "FXQ1526") ~ "thickness measured when dry_thickness",
-                                ID %in% c("GTC8484") ~ "sterile brachlets",
-                                comment_dm == "NA_dry mass missing" ~ "dry mass missing",
-                                comment_dm == "height missing_NA" ~ "height missing",
-                                comment_dm == "NA_height missing" ~ "height missing",
-                                comment_dm == "NA_wet mass missing" ~ "wet mass missing",
+         comment_dm = case_when(ID %in% c("EIZ1694", "CZR5069") ~ paste0(comment_dm,"_", "wet mass when dry_potential wet mass < expected"),
+
+                                ID %in% c("GWT1967", "GUH1653") ~ paste0(comment_dm, "_", "flattened for thickness, potential problem thickness"),
+                                ID %in% c("DVQ3484", "FXQ1526", "GJT9323") ~ "thickness when dry, potential problem thickness",
+                                ID %in% c("GTC8484", "FWG1562") ~ "fertile shoot",
+                                remark == "envelope said height is 3, i am assuming this meant 3 cm so wrote 30 mm" ~ "height uncertain, potential problem height",
                                 TRUE ~ comment_dm)) |>
 
   # merge trait comments
   mutate(comment = paste0(comment_dm, "_", comment_area),
          comment = str_remove(comment, "NA_NA_|NA_|_NA|NA")) |>
 
+  # correct messages
+  mutate(comment = case_when(comment == "10 x too large, corrected wet mass_NA" ~ "10 x too large, corrected wet mass",
+                             comment == "Damage, dry mass < expected_flattened for thickness, potential problem thickness" ~ "leaf damage, dry mass < expected_flattened for thickness, potential problem thickness",
+                             comment == "Might be missing parts, dry mass < expected_removed foreign object" ~ "might be missing parts, potential dry mass < expected_removed foreign object",
+                             comment == "Wet mass maybe off due to moss, wet mass > expected" ~ "moss in sample, potential wet mass > expected",
+                             comment == "flattened for thickness, potential problem thickness_NA" ~ "flattened for thickness, potential problem thickness",
+                             comment == "missing area from other leaf, potential wrong id" ~ "missing area from other leaf, potential problem id",
+                             comment == "wet mass when dry_potential wet mass < expected_NA" ~ "wet mass when dry_potential wet mass < expected",
+                             TRUE ~ comment)) |>
+
   # merge remark and remarks_2
   mutate(remark = if_else(!is.na(remarks_2), paste0(remark, "_", remarks_2), remark)) |>
   select(-remarks_2, -comment_dm, -comment_area) |>
-
-  # Make flags
-  mutate(flag = case_when(
-    # not reliable
-    grepl("damage|stem leaves|sterile brachlets", comment) ~ "unrealiable data",
-
-    # specifics not reliable
-    grepl("area < expected", comment) ~ "unrealibale area",
-    grepl("dry mass < expected", comment) ~ "unrealibale dry mass",
-    grepl("wet mass < expected", comment) ~ "unrealibale wet mass",
-    grepl("wet mass > expected", comment) ~ "unrealibale wet mass",
-    grepl("area_mass < expected|mass area > expected", comment) ~ "unrealibale mass and area",
-    grepl("flattened for thickness measure|thickness measured when dry", comment) ~ "unrealibale thickness",
-    grepl("leaf area from one leaf was matched to leaf with missing area", comment) ~ "potentially unrealibale area",
-
-    # missing
-    comment == "missing plotID and ind_nr" ~ "missing plotID and ind_nr",
-    comment == "missing plotID" ~ "missing plotID",
-    comment == "height missing" ~ "missing height",
-    comment == "wet mass missing" ~ "missing wet mass",
-    comment == "dry mass missing" ~ "missing dry mass",
-    comment == "area missing" ~ "missing area",
-    comment == "scan corrupt_area missing" ~ "missing area",
-    comment == "thickness missing" ~ "missing thickness",
-
-    # multiple issues
-    comment == "height missing_mid_overlapping_folded_leaves_area < expected" ~ "missing height_unrealibale area",
-    comment == "low_overlapping_folded_leaves_damage_area < expected" ~ "unrealibale data",
-    comment == "part of petiole gone, dry mass < expected_area missing" ~ "unrealibale dry mass_missing area",
-    comment == "petiole missing, area_mass < expected_damage_herbivory" ~ "unrealiable data",
-    comment == "petiole missing, area_mass < expected_low_overlapping_folded_leaves_area < expected" ~ "unrealiable mass and area",
-    comment == "petiole missing, area_mass < expected_mid_overlapping_folded_leaves_area < expected" ~ "unrealiable mass and area")) |>
 
   # add flowering from remarks
   mutate(flowering = if_else(is.na(flowering) & grepl("flower|Flower", remark), "flower", flowering)) |>
@@ -539,10 +511,12 @@ clean_traits <- clean_traits |>
                                ID == "CZY5489" ~ 3,
                                ID == "GPW1350" ~ 1,
                                ID == "CZR5069" ~ 3,
+                               # fix Galium problem where some took leaves and others rosettes
+                               ID == "BPD4783" ~ 18,
+                               ID == "BPP6137" ~ 30,
+                               ID == "BPC8034" ~ 30,
+                               ID == "AHI6936" ~ 30,
                                TRUE ~ nr_leaves_wm)) %>%
-
-
-
 
   # Calculate nr of thickness measurements and average leaf thickness
   rowwise() %>%
@@ -559,6 +533,11 @@ clean_traits <- clean_traits |>
   mutate(sla_cm2_g = leaf_area_cm2 / dry_mass_g,
          ldmc = dry_mass_g / wet_mass_g) |>
 
+  ## Fix too high sla values (n = 53)
+  mutate(dry_mass_g = if_else(!is.na(sla_cm2_g) & sla_cm2_g > 500, NA_real_, dry_mass_g),
+         leaf_area_cm2 = if_else(!is.na(sla_cm2_g) & sla_cm2_g > 500, NA_real_, leaf_area_cm2),
+         sla_cm2_g = if_else(sla_cm2_g > 500, NA_real_, sla_cm2_g)) |>
+
   # STREAMLINE TERMINOLOGY WITH VCG, ThreeD and INCLINE
   # make full siteID
   mutate(siteID = recode(siteID,
@@ -570,7 +549,6 @@ clean_traits <- clean_traits |>
                          'Lia' = "Liahovden",
                          'Vik' = "Vikesland",
                          'Joa' = "Joasete")) |>
-
 
 
   # join ThreeD metadata and fix terms
@@ -602,33 +580,79 @@ clean_traits <- clean_traits |>
          blockID = if_else(project == "Incline" & !is.na(plotID), paste(substr(siteID, 1, 3), plotID, sep = "_"), blockID)) |>
   rename(plant_height_cm = plant_height) |>
 
-  # make table long
-  pivot_longer(cols = c(plant_height_cm, wet_mass_g, dry_mass_g, leaf_area_cm2, leaf_thickness_mm, ldmc, sla_cm2_g), names_to = "trait", values_to = "value") |>
+  # Fix wrong blockID and grazing
+  tidylog::mutate(comment = if_else(siteID == "Vikesland" & taxon == "Stellaria graminea" & blockID == "2", "blockID, grazing imputed from missing combinations", comment),
+                  grazing = if_else(siteID == "Vikesland" & taxon == "Stellaria graminea" & blockID == "2", "N", grazing),
+                  blockID = if_else(siteID == "Vikesland" & taxon == "Stellaria graminea" & blockID == "2", "4", blockID),
 
-  #log transform size and area traits
-  mutate(value_trans = if_else(
-    trait %in% c("plant_height_cm", "wet_mass_g", "dry_mass_g", "leaf_area_cm2", "leaf_thickness_mm"),
-    true = suppressWarnings(log(value)),# suppress warnings from log(-value) in isotopes (these are calculated but not kept)
-    false = value),
-  trait_trans = recode(trait,
-    "plant_height_cm" = "plant_height_log_cm",
-    "wet_mass_g" = "wet_mass_log_g",
-    "dry_mass_g" = "dry_mass_g_log",
-    "leaf_area_cm2" = "leaf_area_log_cm2",
-    "leaf_thickness_mm" = "leaf_thickness_log_mm")) |>
-  # select and sort
+                  grazing = if_else(ID == "DCE7153", "C", grazing),
+                  Nlevel = if_else(ID == "DCE7153", 3, Nlevel)) |>
+
+  tidylog::mutate(blockID = if_else(ID == "EVU9278", "1", blockID),
+                  grazing = if_else(ID == "EVU9278", "C", grazing),
+                  Nlevel = if_else(ID == "EVU9278", 1, Nlevel),
+                  individual_nr = if_else(ID == "EVU9278", 3, individual_nr),
+                  comment = if_else(ID == "EVU9278", "blockID, grazing imputed from missing combinations", comment)) |>
+
+  tidylog::mutate(blockID = if_else(ID == "EXQ7925", "1", blockID),
+                  grazing = if_else(ID == "EXQ7925", "N", grazing),
+                  Nlevel = if_else(ID == "EXQ7925", 1, Nlevel),
+                  comment = if_else(ID == "EXQ7925", "blockID, grazing imputed from missing combinations", comment)) |>
+
+  tidylog::mutate(blockID = if_else(ID == "HON7844", "10", blockID),
+                  grazing = if_else(ID == "HON7844", "N", grazing),
+                  Nlevel = if_else(ID == "HON7844", 2, Nlevel),
+                  individual_nr = if_else(ID == "", 5, individual_nr),
+                  comment = if_else(ID == "HON7844", "blockID, grazing imputed from missing combinations", comment)) |>
+
+    # make table long
+    pivot_longer(cols = c(plant_height_cm, wet_mass_g, dry_mass_g, leaf_area_cm2, leaf_thickness_mm, ldmc, sla_cm2_g), names_to = "trait", values_to = "value") |>
+    # remove missing values
+    filter(!is.na(value))
+
+## Fix comments and make flag
+comments <- read_csv("raw_data/traits/comments_trait_data.csv")
+
+# add comments, problem and flag
+clean_traits <- clean_traits |>
+  # only 4x NA column from comments.csv does not match, but that is ok
+  left_join(comments, by = "comment") |>
+  mutate(comment = if_else(comment == "NA", NA_character_, comment)) |>
+  select(-comment) |>
+  rename(comment = comment2) |>
+  # fix other issues
+  mutate(problem = if_else(ID == "CKE1363" & trait == "leaf_thickness_mm", "Thickness measurments seem too high", problem),
+         flag = if_else(ID == "CKE1363" & trait == "leaf_thickness_mm", "thickness > expected", flag),
+         problem = if_else(siteID == "Vikesland" & taxon == "Stellaria graminea" & blockID == "2", "blockID and grazing imputed", problem),
+         flag = if_else(siteID == "Vikesland" & taxon == "Stellaria graminea" & blockID == "2", "potential blockID and grazing problem", flag),
+         problem = if_else(ID %in% c("EVU9278", "EXQ7925", "HON7844"), "blockID and grazing imputed", problem),
+         flag = if_else(ID %in% c("EVU9278", "EXQ7925", "HON7844"), "potential blockID and grazing problem", flag),
+         flag = if_else(ID %in% c("BPP6137", "DAU3747"), "grazing missing", flag))
+
+
+# split data for 3D and gradient and Incline
+clean_traits <- clean_traits |>
   select(ID, date, project, gradient, siteID, elevation_m_asl, blockID, turfID, warming, grazing, Nlevel, Namount_kg_ha_y, individual_nr, species = taxon,
-         trait, value, trait_trans, value_trans,
+         trait, value, flowering,
          origSiteID, destSiteID,
-         comment, flag,
-         # useful variables
-         flowering, nr_leaves_wm, nr_leaves_dm, number_leaf_fragments_scanned, nr_thickness,
-         # remove 3 x thickness once data is properly checked
-         leaf_thickness_1_mm, leaf_thickness_2_mm, leaf_thickness_3_mm,
-         wet_mass_total_g, dry_mass_total_g, leaf_area_total_cm2,
+         comment, problem, flag,
          remark, remark_dry_mass, scanning_comment)
 
-write_csv(clean_traits, file = "clean_data/PFTC6_clean_leaf_traits_2022.csv")
+# Make 3D data
+clean_traits |>
+  filter(project == "3D") |>
+  select(ID, date, gradient, siteID, elevation_m_asl, blockID, turfID, warming, grazing, Nlevel, Namount_kg_ha_y, individual_nr, species, trait, value, origSiteID, destSiteID, comment, problem, flag) |>
+  write_csv(file = "clean_data/PFTC6_ThreeD_clean_leaf_traits_2022.csv")
+
+# Make Incline data
+clean_traits |>
+  filter(project == "Incline") |>
+  select(ID, date, siteID, elevation_m_asl, blockID, warming, individual_nr, species, trait, value, flowering, comment, problem, flag) |>
+  write_csv(file = "clean_data/PFTC6_Incline_clean_leaf_traits_2022.csv")
+
+
+
+#_______________________________________________________________________________
 
 
 # Problems that cannot be fixed
@@ -640,173 +664,3 @@ write_csv(clean_traits, file = "clean_data/PFTC6_clean_leaf_traits_2022.csv")
 # EOP1516, a grass, 2 leaves, probably Agrostis
 # GAL3376, Sib.pro, 2 leaves
 
-
-#_______________________________________________________________________________
-
-
-
-
-### TO DO:
-### PROBLEMS
-
-# a bit uncertain if match is correct
-# 5  3323 raw_data/traits/pftc6_leaf_scans/2022-07-30 out       2    16.1 -> 2 leaves ach millefolium -> can be BGW5255, but seems to be a bit off
-
-
-# outliers
-# 1 x thickness
-clean_traits2 |>
-  ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_2_mm, colour = siteID)) +
-  geom_point()
-
-clean_traits2 |> filter(leaf_thickness_1_mm < 0.5 & leaf_thickness_2_mm > 0.75) |> as.data.frame()
-# CKE1363 LT2 and LT3 might be a bit high
-clean_traits2 |> filter(taxon == "Festuca rubra") |> ggplot(aes(x = leaf_thickness_mm)) + geom_histogram()
-
-# sla huge
-clean_traits2 |>
-  ggplot(aes(x = dry_mass_g, y = sla_cm2_g, shape = siteID, colour = sla_cm2_g > 500)) +
-  geom_point()
-clean_traits2 |> filter(sla_cm2_g > 1000) |> select(ID:plotID, dry_mass_g, wet_mass_g, ldmc, leaf_area_cm2, sla_cm2_g, comment, flag)
-
-clean_traits2 |>
-  ggplot(aes(x = dry_mass_g, y = ldmc, colour = sla_cm2_g > 1000)) +
-  geom_point()
-
-
-#_______________________________________________________________________________
-
-#### CHECKING DATA, OUTLIERS ETC. ####
-
-# some outliers for area vs mass
-# looks good
-clean_traits2 |>
-  ggplot(aes(x = leaf_area_cm2, y = dry_mass_g, colour = siteID)) +
-  geom_point()
-
-clean_traits2 |>
-  ggplot(aes(x = leaf_area_cm2, y = wet_mass_g, colour = siteID)) +
-  geom_point()
-
-clean_traits2 |>
-  ggplot(aes(x = dry_mass_g, y = wet_mass_g, colour = taxon)) +
-  geom_point() +
-  theme(legend.position = "none")
-
-# 1 strange value
-clean_traits2 |>
-  ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_2_mm, colour = siteID)) +
-  geom_point()
-
-# looks good!
-clean_traits2 |>
-  ggplot(aes(x = leaf_thickness_2_mm, y = leaf_thickness_3_mm, colour = siteID)) +
-  geom_point()
-
-clean_traits2 |>
-  ggplot(aes(x = leaf_thickness_1_mm, y = leaf_thickness_3_mm, colour = siteID)) +
-  geom_point()
-
-
-# looks good
-clean_traits2 |>
-  ggplot(aes(x = dry_mass_g, y = ldmc, shape = siteID, colour = ldmc > 1)) +
-  geom_point()
-
-clean_traits2 |>
-  ggplot(aes(x = dry_mass_g, y = sla_cm2_g, shape = siteID, colour = sla_cm2_g > 500)) +
-  geom_point()
-clean_traits2 |> filter(sla_cm2_g > 1000) |> select(ID:plotID, dry_mass_g, wet_mass_g, ldmc, leaf_area_cm2, sla_cm2_g, comment, flag)
-
-
-data <- clean_traits
-# Libraries
-library(viridis)
-library(forcats)
-
-#### PLANT HEIGHT ####
-#Histogram of plant height
-#First, for all data combined
-hist(data$plant_height,
-     xlab = "Plant height (cm)",
-     main = "Check for utliers",
-     breaks = sqrt(nrow(data)))
-
-# Now plot per species and site
-# Get unique site names to loop over (different plot per site)
-sites <- unique(data$siteID)
-# Create empty list to save plots
-site_plots <- list()
-# Run loop to plot all sites
-for (site_ in sites) {
-  site_plots[[site_]] = ggplot(data %>% filter(siteID == site_),
-    aes(x=plant_height, color=taxon, fill=taxon))+
-    geom_histogram(alpha = 0.6, binwidth = 0.5) +
-    scale_fill_viridis(discrete=TRUE) +
-    scale_color_viridis(discrete=TRUE) +
-    theme_minimal() +
-    theme(
-      panel.border = element_rect(fill = NA, color = "grey80"),
-      panel.grid = element_blank(),
-      legend.position="none",
-      panel.spacing = unit(0.1, "lines"),
-      strip.text.x = element_text(size = 8)
-    ) +
-    xlab("Plant height (cm)") +
-    ylab("Frequency") +
-    ggtitle(site_) +
-    facet_wrap(~taxon, scales = "free")
-}
-# Select which plot (site) to view
-sites
-site_plots[1] #Hogsete
-
-# Now with a focus on species
-sp_data <- data %>%
-  ggplot( aes(x=plant_height, color=siteID, fill=siteID)) +
-  geom_histogram(alpha = 0.6, binwidth = 0.5) +
-  scale_fill_viridis(discrete=TRUE) +
-  scale_color_viridis(discrete=TRUE) +
-  theme_minimal() +
-  theme(
-    panel.border = element_rect(fill = NA, color = "grey80"),
-    panel.grid = element_blank(),
-    legend.position = "right",
-    panel.spacing = unit(0.1, "lines"),
-    strip.text.x = element_text(size = 8)
-  ) +
-  xlab("Plant height (cm)") +
-  ylab("Frequency") +
-  ggtitle("") +
-  facet_wrap(~taxon, scales = "free")
-sp_data #Pretty cool! We can start seeing some differences between sites
-
-# Can also plot species individually
-# Get unique species names to loop over (different plot per species)
-species <- unique(data$taxon)
-# Create empty list to save plots
-species_plots <- list()
-# Run loop to plot all species
-for (species_ in species) {
-  species_plots[[species_]] = ggplot(data %>%
-                                       filter(taxon == species_),
-    aes(x=plant_height, color=siteID, fill=siteID))+
-    geom_histogram(alpha = 0.6, binwidth = 0.5) +
-    scale_fill_viridis(discrete=TRUE) +
-    scale_color_viridis(discrete=TRUE) +
-    theme_minimal() +
-    theme(
-      panel.border = element_rect(fill = NA, color = "grey80"),
-      panel.grid = element_blank(),
-      legend.position="none",
-      panel.spacing = unit(0.1, "lines"),
-      strip.text.x = element_text(size = 8)
-    ) +
-    xlab("Plant height (cm)") +
-    ylab("Frequency") +
-    ggtitle(species_) +
-    facet_wrap(~taxon, scales = "free")
-}
-# Select which plot (species) to view
-species
-species_plots[1] #Agrostis capillaris

@@ -50,6 +50,17 @@ dry_mass <- raw_dry_mass |>
                               ID == "CKH3753" ~ 0.00848,
                               ID == "DYT2257" ~ 0.01098,
                               ID == "GIR2712" ~ 0.01553,
+
+                              ID == "BNT7204" ~ 0.0099,
+                              ID == "DBR2205" ~ 0.0054,
+                              ID == "EAX6890" ~ 0.03641,
+                              ID == "EFZ2636" ~ 0.00480,
+                              ID == "HBO6894" ~ 0.02337,
+                              ID == "IJQ9708" ~ 0.02268,
+                              ID == "HTH8109" ~ 0.00635,
+                              ID == "GDU4741" ~ 0.00959,
+                              ID == "GBG7195" ~ 0.0149,
+                              ID == "HWP9676" ~ 0.0059,
                               TRUE ~ dry_mass)) |>
   # add missing dry mass
   bind_rows(missing_dry_mass) |>
@@ -67,9 +78,13 @@ dry_mass <- raw_dry_mass |>
                                 ID == "BJA1904" ~ "part of petiole gone, dry mass < expected",
                                 ID %in% c("CYF1214", "CYF1214") ~ "missing some petioles, dry mass < expected",
                                 ID == "GLC4523" ~ "Wet mass maybe off due to moss, wet mass > expected",
+                                grepl("may be missing some material", remark_dry_weighing) ~ "Might be missing parts, dry mass < expected",
+                                grepl("one leaf damaged", remark_dry_weighing) ~ "Damage, dry mass < expected",
+
                                 # damage
-                                grepl("bud", remark_dry_weighing) ~ "damage_herbivory",
-                                grepl("tip has come off|Tip missing", remark_dry_weighing) ~ "damage",
+                                grepl("bud", remark_dry_weighing) ~ "damage_herbivory, dry mass < expected",
+                                grepl("tip has come off|Tip missing", remark_dry_weighing) ~ "damage, dry mass < expected",
+                                grepl("froze damage", remark_dry_weighing) ~ "damage, dry mass < expected",
 
                                 # add comment when leaves were lost
                                 ID %in% c("BPT4152", "AND1627", "BJU6449", "BDV3827", "ABC7502", "CIO0085", "CYJ9702", "EKL8440", "CZR5069", "BRM7672", "DVJ8460", "GTW7354", "DQC4298", "HWP9676", "EZC2758", "INR2799", "EYP6103", "HEP4020", "DVR2576", "IIB8454", "IKE6687", "HNC6175", "CYW3541") ~ "some leaves gone, recalculate dry mass",
@@ -103,6 +118,11 @@ dry_mass <- raw_dry_mass |>
                                         ID == "HNC6175" ~ 4,
                                         ID == "CHW9026" ~ 1,
                                         ID == "BHS3927" ~ 1,
+                                  # fix Galium problem where some took leaves and others rosettes
+                                        ID == "BPD4783" ~ 18,
+                                        ID == "BPP6137" ~ 30,
+                                        ID == "BPC8034" ~ 30,
+                                        ID == "AHI6936" ~ 30,
                                         FALSE ~ NA_real_
                                         )) |>
   select(-notes)
@@ -260,7 +280,7 @@ leaf_area <- raw_leaf_area |>
   left_join(scanning_checks, by = "ID") |>
   mutate(area_comment = if_else(grepl("overlapping", scanning_comment), paste0(scanning_comment, "_area < expected"), area_comment),
          # petiole missing is not damaged, but area < expected. This is already being fixed in dry mass comments
-         scanning_comment = if_else(grepl("petiol|Petiols", supporting_scanning_comment), NA_character_, scanning_comment),
+         #scanning_comment = if_else(grepl("petiol|Petiols", supporting_scanning_comment), NA_character_, scanning_comment),
          scanning_comment = if_else(area_comment == "additional scan cropping", "additional scan cropping", scanning_comment),
          # fix some comments
          area_comment = case_when(ID == "ACU0226" ~ "Low_overlapping_folded_leaves_area < expected",
@@ -269,16 +289,18 @@ leaf_area <- raw_leaf_area |>
                                   ID == "CPQ8518" ~ "partly outside_area < expected",
                                   ID == "BIG3139" ~ "bright, area < expected",
                                   ID == "CJS6825" ~ "Mid_overlapping_folded_leaves_area < expected",
-                                  ID == "EAV1989" ~ "Low_overlapping_folded_leaves_damage_area < expected",
-                                  # remove comment that is not essential. Is a scanning comment now
-                                  area_comment == "additional scan cropping" ~ NA_character_,
+                                  ID == "EAV1989" ~ "Low_overlapping_folded_leaves_area < expected, leaf damage potential mass and area problem",
                                   # herbivory
-                                  grepl("Herbivory|herbivory|herbivoy|herb and", supporting_scanning_comment) ~ "damage_herbivory",
-                                  grepl("frost damage", supporting_scanning_comment) ~ "damage_frost",
-                                  grepl("dark spots", supporting_scanning_comment) ~ "damage_spots",
-                                  is.na(area_comment) & scanning_comment == "Damaged_leaf" ~ "damage",
+                                  grepl("Herbivory|herbivory|herbivoy|herb and", supporting_scanning_comment) ~ "leaf damage, potential mass and area problem",
+                                  grepl("frost damage", supporting_scanning_comment) ~ "leaf damage, potential mass and area problem",
+                                  grepl("dark spots", supporting_scanning_comment) ~ "leaf damage, potential mass and area problem",
+                                  is.na(area_comment) & scanning_comment == "Damaged_leaf" ~ "leaf damage, potential mass and area problem",
                                   # comment for missing areas that were matched
-                                  ID %in% c("GJN2296", "EGR7522", "BGW5255") ~ "leaf area from one leaf was matched to leaf with missing area",
+                                  ID %in% c("GJN2296", "EGR7522", "BGW5255") ~ "Missing area from other leaf, potential wrong ID",
+                                  supporting_scanning_comment %in% c("cannot be fixed, flag area", "one damage of 3 leaves", "one is damaged", "1 out of 15") ~ "corrected invisible area",
+                                  ID %in% c("DRZ8028", "CUL6951") ~ "corrected invisible area, leaf damage potential mass and area problem",
+                                  ID %in% c("APL1495", "APP3418", "AQI0874", "CXI4978") ~ "corrected invisible area, petiole missing, potential mass and area problem",
+                                  ID == "DVA0594" ~ "removed foreign object",
                                   TRUE ~ area_comment),
          area_comment = tolower(area_comment)) |>
   # clean up comments
@@ -287,8 +309,10 @@ leaf_area <- raw_leaf_area |>
   rename(comment_area = area_comment)
 
 
+
+
+
 # Code to check stuff
 # valid_codes |> filter(grepl("EOP", hashcode))
 # leaf_area |> filter(grepl("CQF", ID))
-#clean_traits |> filter(grepl("BKT7468", ID))
 
