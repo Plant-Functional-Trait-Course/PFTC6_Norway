@@ -50,7 +50,7 @@ clean_dry_mass <- function(raw_dry_mass){
                                 ID == "DYT2257" ~ 0.01098,
                                 ID == "GIR2712" ~ 0.01553,
 
-                                ID == "BNT7204" ~ 0.0099,
+                                ID == "BNT7204" ~ 0.00099,
                                 ID == "DBR2205" ~ 0.0054,
                                 ID == "EAX6890" ~ 0.03641,
                                 ID == "EFZ2636" ~ 0.00480,
@@ -59,7 +59,10 @@ clean_dry_mass <- function(raw_dry_mass){
                                 ID == "HTH8109" ~ 0.00635,
                                 ID == "GDU4741" ~ 0.00959,
                                 ID == "GBG7195" ~ 0.0149,
-                                ID == "HWP9676" ~ 0.0059,
+                                ID == "HWP9676" ~ 0.00059,
+                                ID == "EVD5117" ~ 0.06803,
+                                ID == "AFH6257" ~ NA_real_, # dry mass is very wrong
+
                                 TRUE ~ dry_mass)) |>
     # add missing dry mass
     bind_rows(missing_dry_mass) |>

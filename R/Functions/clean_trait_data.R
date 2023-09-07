@@ -203,8 +203,10 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
                                   ID == "GYZ8905" ~ 0.3574,
                                   ID == "ERM6771" ~ 0.0669,
                                   ID == "DVI2460" ~ 1.3371,
+                                  ID == "IOK8381" ~ 0.0823,
+                                  ID == "HNK1213" ~ 0.0503,
+                                  ID == "CZR5069" ~ NA_real_, # is clearly off and was measured when dry
                                   TRUE ~ wet_mass_g))
-
 
 
   # Check experiments column
@@ -433,7 +435,7 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
                                     ID == "ADG7762" ~ "corrected invisible area",
                                     TRUE ~ comment_area),
 
-           comment_dm = case_when(ID %in% c("EIZ1694", "CZR5069") ~ paste0(comment_dm,"_", "wet mass when dry_potential wet mass < expected"),
+           comment_dm = case_when(ID %in% c("EIZ1694") ~ paste0(comment_dm,"_", "wet mass when dry_potential wet mass < expected"),
 
                                   ID %in% c("GWT1967", "GUH1653") ~ paste0(comment_dm, "_", "flattened for thickness, potential problem thickness"),
                                   ID %in% c("DVQ3484", "FXQ1526", "GJT9323") ~ "thickness when dry, potential problem thickness",
@@ -610,7 +612,13 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
            flag = if_else(siteID == "Vikesland" & taxon == "Stellaria graminea" & blockID == "2", "potential blockID and grazing problem", flag),
            problem = if_else(ID %in% c("EVU9278", "EXQ7925", "HON7844"), "blockID and grazing imputed", problem),
            flag = if_else(ID %in% c("EVU9278", "EXQ7925", "HON7844"), "potential blockID and grazing problem", flag),
-           flag = if_else(ID %in% c("BPP6137", "DAU3747"), "grazing missing", flag))
+           flag = if_else(ID %in% c("BPP6137", "DAU3747"), "grazing missing", flag),
+
+           # flag ldmc issues
+           problem = if_else(ID %in% c("GVT6798", "GJF0239", "GTW7354", "HAD8264", "IIM0953", "EVD5117"), "wet or dry mass might be wrong", problem),
+           problem = if_else(ID == "HNK1213", "wet mass correction removed because seemed wrong", problem),
+           flag = if_else(ID %in% c("GVT6798", "GJF0239", "GTW7354", "HAD8264", "IIM0953", "EVD5117"), "potential mass and ldmc wrong", flag),
+           flag = if_else(ID == "HNK1213", "potential wet mass and ldmc wrong", flag))
 
 
 }
@@ -636,7 +644,6 @@ save_csv <- function(file, name) {
   output <- write_csv(x = file, file = filepath)
   filepath
 }
-
 
 
 #_______________________________________________________________________________
