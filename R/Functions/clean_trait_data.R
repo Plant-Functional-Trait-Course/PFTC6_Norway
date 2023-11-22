@@ -516,6 +516,8 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
     mutate(wet_mass_g = wet_mass_total_g / nr_leaves_wm,
            dry_mass_g = dry_mass_total_g / nr_leaves_dm,
            leaf_area_cm2 = leaf_area_total_cm2 / nr_leaves_wm)  |>
+    # double area for Festuca, Avenella and Nardus
+    mutate(leaf_area_cm2 = if_else(grepl("Festuca|Avenella|Nardus", taxon), 2*leaf_area_cm2, leaf_area_cm2)) |>
     # Calculate SLA and LDMC (replace with wet mass for now)
     mutate(sla_cm2_g = leaf_area_cm2 / dry_mass_g,
            ldmc = dry_mass_g / wet_mass_g) |>

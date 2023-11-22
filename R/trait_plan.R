@@ -3,7 +3,7 @@
 trait_plan <- list(
 
   # download data
-  # leaf area
+  #leaf area
   tar_target(
     name = leaf_area_download,
     command = get_file(node = "fcbw4",
