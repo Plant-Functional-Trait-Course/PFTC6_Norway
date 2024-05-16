@@ -30,10 +30,12 @@ community_plan <- list(
         "Carex sp",   "graminoid", "Cyperaceae",
         "Dryas octopetala",   "forb", "Rosaceae",
         "Empetrum rubrum",   "woody", "Ericaceae",
-        "Phegopteris connectilis",   "xx", "xx",
+        "Phegopteris connectilis",   "fern", "Thelypteridaceae",
         "Urtica dioica",   "forb", "Rosaceae",
-        "Cladonia rangiferina",   "lichen", "xx",
-        "Kindbergia praelonga",   "xx", "xx"
+        "Deschampsia flexuosa",   "graminoid", "Poaceae",
+        "Vaccinium myrtillus",   "woody", "Ericaceae",
+        "Cladonia rangiferina",   "lichen", "Cladoniaceae",
+        "Kindbergia praelonga",   "bryophyte", "Brachytheciaceae"
 
       )
 
@@ -52,14 +54,28 @@ community_plan <- list(
     command = {
 
       # leaf flux species
-      leaf_flux <- tibble(project = "ii leaf flux",
+      leaf_flux <- tibble(project = "ii Leaf assimilation-temperature responses",
              species = c("Alchemilla alpina",
                          "Achillea millefolium",
-                         "Agrostis capillaris",
                          "Vaccinium vitis-idaea"))
 
+      leaf_hyperspect <- tibble(project = "iii Leaf hyperspectral imagery",
+        species = c("Achillea millefolium",
+        "Agrostis capillaris",
+        "Alchemilla alpina",
+        "Deschampsia flexuosa",
+        "Empetrum rubrum",
+        "Festuca rubra",
+        "Hypericum maculatum",
+        "Kindbergia praelonga",
+        "Rumex acetosa",
+        "Vaccinium myrtillus",
+        "Vaccinium vitis-idaea",
+        "Veronica alpina")
+      )
+
       # remote sensing species
-      remote_sensing <- tibble(project = "vi multispectral imagery",
+      remote_sensing <- tibble(project = "vi airborne multispectral imagery",
                           species = c("Achillea millefolium",
                                       "Dryas octopetala",
       "Luzula multiflora",
@@ -98,15 +114,15 @@ community_plan <- list(
       leaf_traits_clean |>
         distinct(project, gradient, species) |>
         filter(!is.na(project)) |>
-        bind_rows(leaf_flux, remote_sensing) |>
+        bind_rows(leaf_flux, leaf_hyperspect) |>
         left_join(taxon_table, by = c("species" = "species_name")) |>
         mutate(project = paste(project, gradient, sep = "_"),
-               project = recode(project, `3D_gradient` = "i traits gradient", Incline_NA = "i traits warming", "3D_NA" = "i traits global change"),
+               project = recode(project, `3D_gradient` = "i Traits gradient", Incline_NA = "i Traits warming", "3D_NA" = "i Traits global change"),
                presence = "x") |>
         select(-gradient) |>
         pivot_wider(names_from = project, values_from = presence) |>
         arrange(functional_group, species) |>
-        select(functional_group, family, species, `i traits gradient`:`i traits global change`, `ii leaf flux` = `ii leaf flux_NA`, `vi multispectral imagery` = `vi multispectral imagery_NA`)
+        select(functional_group, family, species, `i Traits gradient`, `i Traits warming`, `i Traits global change`, `ii Leaf assimilation-temperature responses` = `ii Leaf assimilation-temperature responses_NA`, `iii Leaf hyperspectral imagery_NA` = `iii Leaf hyperspectral imagery_NA`)
 
     }
 
@@ -115,7 +131,7 @@ community_plan <- list(
   tar_target(
     name = traits_taxon_table_output,
     command =  save_csv(traits_taxon_table,
-                        name = "PFTC6_traits_taxon_table2_2022.csv"),
+                        name = "PFTC6_taxon_table_2022.csv"),
     format = "file"
   )
 
