@@ -8,7 +8,7 @@ data_dic_plan <- list(
     command = get_file(node = "fcbw4",
                        file = "PFTC6_data_description.xlsx",
                        path = "raw_data",
-                       remote_path = "raw_data/trait_raw_data"),
+                       remote_path = "raw_data/i. trait_raw_data"),
     format = "file"
   ),
 
