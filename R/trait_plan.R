@@ -9,7 +9,7 @@ trait_plan <- list(
     command = get_file(node = "fcbw4",
                        file = "PFTC6_leaf_area_2022.csv",
                        path = "raw_data/traits",
-                       remote_path = "raw_data/trait_raw_data"),
+                       remote_path = "raw_data/i. trait_raw_data"),
     format = "file"
   ),
 
@@ -18,7 +18,7 @@ trait_plan <- list(
     command = get_file(node = "fcbw4",
                        file = "PFTC6_leaf_area_corrected_2022.csv",
                        path = "raw_data/traits",
-                       remote_path = "raw_data/trait_raw_data"),
+                       remote_path = "raw_data/i. trait_raw_data"),
     format = "file"
   ),
 
@@ -27,7 +27,7 @@ trait_plan <- list(
     command = get_file(node = "fcbw4",
                        file = "PFTC6_leaf_area_corrected_2_2022.csv",
                        path = "raw_data/traits",
-                       remote_path = "raw_data/trait_raw_data"),
+                       remote_path = "raw_data/i. trait_raw_data"),
     format = "file"
   ),
 
@@ -36,7 +36,7 @@ trait_plan <- list(
     command = get_file(node = "fcbw4",
                        file = "PFTC6_leaf_area_cropping_2022.csv",
                        path = "raw_data/traits",
-                       remote_path = "raw_data/trait_raw_data"),
+                       remote_path = "raw_data/i. trait_raw_data"),
     format = "file"
   ),
 
@@ -46,7 +46,7 @@ trait_plan <- list(
     command = get_file(node = "fcbw4",
                        file = "comments_trait_data.csv",
                        path = "raw_data/traits",
-                       remote_path = "raw_data/trait_raw_data"),
+                       remote_path = "raw_data/i. trait_raw_data"),
     format = "file"
   ),
 
@@ -55,7 +55,7 @@ trait_plan <- list(
     command = get_file(node = "fcbw4",
                        file = "PFTC6_Norway_Leaf_traits_2022.xlsx",
                        path = "raw_data/traits/",
-                       remote_path = "raw_data/trait_raw_data"),
+                       remote_path = "raw_data/i. trait_raw_data"),
     format = "file"
   ),
 
@@ -126,6 +126,12 @@ trait_plan <- list(
     command = clean_leaf_area(raw_leaf_area, raw_leaf_area_corrected, raw_leaf_area_corrected_2, raw_leaf_area_cropped, scanning_checks)
   ),
 
+  # chem traits
+  tar_target(
+    name = chem_traits_clean,
+    command = clean_chem_traits(leaf_traits_Incline)
+  ),
+
   # leaf traits
   tar_target(
     name = leaf_traits_clean_full,
@@ -164,6 +170,16 @@ trait_plan <- list(
     name = leaf_traits_Incline_output,
     command =  save_csv(leaf_traits_Incline,
                         name = "PFTC6_Incline_clean_leaf_traits_2022.csv"),
+    format = "file"
+  ),
+
+  # chemical traits
+  tar_target(
+    name = chemical_traits_Incline_output,
+    command =  save_csv(chem_traits_clean |>
+                          filter(project == "Incline") |>
+                          select(-project),
+                        name = "PFTC6_Incline_clean_chemical_traits_2022.csv"),
     format = "file"
   )
 
