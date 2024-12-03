@@ -154,12 +154,13 @@ clean_chem_traits <- function(leaf_traits_Incline){
            .id = "filename") |>
     clean_names() |>
     filter(!is.na(x1)) |> # removing empty rows
-    select(-c(x11:d13c_vpdb)) |>
+    select(-c(x11:x17, x9, x18)) |>
     rename(ID = sample_id, site = x3, d15n = d15n_atm, d13c = d13c_pdb) |>
     select(ID, site, c_percent, n_percent, c_n, d15n, d13c, everything()) |>
     filter(!is.na(ID)) |>
     mutate(ID = case_when(ID == "EGX4796" ~ "EGX4795",
                           ID == "EJ16479" ~ "EJI6479",
+                          ID == "CLT2727" ~ "CTL2727",
                           ID == "GPZ4087_GPI5077" ~ "GPQ4087_GPI5077",
                           ID == "HSJ3702_EQD7138" ~ "HJS3702_EQD7138",
                           TRUE ~ ID))
@@ -202,6 +203,8 @@ clean_chem_traits <- function(leaf_traits_Incline){
     mutate(project = if_else(siteID %in% c("Gudmedalen", "Skjelingahaugen", "Ulvehaugen"), "Incline", "3D")) |>
     tidylog::select(project, ID, ID_merged, date, siteID, elevation_m_asl, blockID, warming, individual_nr, species, trait, value, merged, flag)
 
+  # cnp_data |>
+  #   anti_join(valid_codes, by = c("ID" = "hashcode"))
 
 }
 
@@ -209,13 +212,13 @@ clean_chem_traits <- function(leaf_traits_Incline){
 #   ggplot(aes(x = value, fill = siteID)) +
 #   geom_density(alpha = 0.5) +
 #   facet_wrap(~ trait, scales = "free")
-#
+
 # d <- read_csv("cnp/PFTC6_3D_cnp_traits_warmingTreatment_5-may-2023.csv")
 # i <- read_csv("cnp/PFTC6_Incline_cnp_traits_5-may-2023.csv")
 #
 # d |> distinct(species) |>
 #   full_join(i |> distinct(species))
-#
-# # 461
-#  # 968
+# i |> distinct(chemID)
+# 461
+ # 968
 
