@@ -26,25 +26,26 @@ This repository contains the cleaning code for the morphological and chemical tr
 Note that the cleaning code for other datasets is in other repositories (for more details see the paper).
 
 
-### Reproduce the cleaning code
+### Hwo to reproduce the data cleaning
 
-The cleaning code in this repository is based on a [targets pipeline](https://books.ropensci.org/targets/) in a [renv environment](https://rstudio.github.io/renv/articles/renv.html).
+The cleaning code in this repository is based on a reproducible workflow using a [targets pipeline](https://books.ropensci.org/targets/) in a [renv environment](https://rstudio.github.io/renv/articles/renv.html).
 
-To reproduce the cleaning code follow these steps:
+To reproduce the data cleaning, use the following steps:
 
 1. Clone this GitHub repository to your local machine.
 
 2. Run `renv::restore()` to reproduce the environment and download and install all R packages that are needed.
 
 3. Open the `run.R` file and run `library(targets)` and `targets::tar_make()` to reproduce the code.
+The cleaning code is located in the R/Functions folder and is based on functions that are called in the `trait_plan`.
 
 
 
 ### Data file naming convention
 
-The file names have the following convention:
+The clean data files follow this naming convention:
 
 Project_Status_Experiment_Response_Year(s).Extension
 
-E.g. PFTC_clean_Global_Change_traits_2022.csv
-
+E.g. PFTC_clean_GlobalChangeExperiment_traits_2022.csv
+E.g. PFTC_clean_ElevationGradient_assimilation_temperature_2022.csv
