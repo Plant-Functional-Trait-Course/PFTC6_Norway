@@ -166,7 +166,24 @@ clean_chem_traits <- function(leaf_traits_Incline){
                           TRUE ~ ID))
 
 
-  cn_isotopes <- cn |>
+  # remove repeats
+  singles <- cn |>
+    # get repeats
+    group_by(ID) |>
+    mutate(n = n()) |>
+    filter(n == 1)
+
+  repeats <- cn |>
+    # get repeats
+    group_by(ID) |>
+    mutate(n = n()) |>
+    filter(n > 1) |>
+    # remove repeats
+    tidylog::filter(!d15n %in% c("REPEAT", "Empty Cell")) |>
+    tidylog::filter(!(ID == "GBN3202" & is.na(d13c)))
+
+
+  cn_isotopes <- bind_rows(singles, repeats) |>
     pivot_longer(cols = c(c_percent:d13c), names_to = "trait", values_to = "value") |>
     mutate(value = if_else(value %in% c("REPEAT", "Empty Cell"), NA_character_, value),
            value = as.numeric(value)) |>
