@@ -154,7 +154,7 @@ trait_plan <- list(
   tar_target(
     name = leaf_traits_3D_output,
     command = save_csv(leaf_traits_3D,
-                       name = "PFTC6_ThreeD_clean_leaf_traits_2022.csv"),
+                       name = "PFTC6_clean_ElevationGradient_GlobalChangeExperiment_leaf_traits_2022.csv"),
     format = "file"
   ),
 
@@ -169,7 +169,7 @@ trait_plan <- list(
   tar_target(
     name = leaf_traits_Incline_output,
     command =  save_csv(leaf_traits_Incline,
-                        name = "PFTC6_Incline_clean_leaf_traits_2022.csv"),
+                        name = "PFTC6_clean_WarmingExperiment_leaf_traits_2022.csv"),
     format = "file"
   ),
 
@@ -179,7 +179,7 @@ trait_plan <- list(
     command =  save_csv(chem_traits_clean |>
                           filter(project == "Incline") |>
                           select(-project),
-                        name = "PFTC6_Incline_clean_chemical_traits_2022.csv"),
+                        name = "PFTC6_clean_WarmingExperiment_chemical_traits_2022.csv"),
     format = "file"
   )
 
