@@ -1,3 +1,14 @@
+---
+output: github_document
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
 # PFTC6 data paper README file
 
 This repository contains the cleaning code for the morphological and chemical traits (dataset i) from the data paper: Vandvik et al. Plant trait, carbon flux, reflectance and climate data from global change experiments and gradients in Norway.
