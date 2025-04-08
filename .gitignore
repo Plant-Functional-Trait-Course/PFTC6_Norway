@@ -17,7 +17,8 @@ data/*
 clean_data/*
 raw_data/*
 course stuff/*
-other code/*
+other_code/*
+!other_code/download_comm_data.R
 *.csv
 *.xls
 *.xlsx
