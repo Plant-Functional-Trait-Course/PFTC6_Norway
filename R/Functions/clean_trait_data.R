@@ -622,6 +622,13 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
            flag = if_else(ID %in% c("GVT6798", "GJF0239", "GTW7354", "HAD8264", "IIM0953", "EVD5117"), "potential mass and ldmc wrong", flag),
            flag = if_else(ID == "HNK1213", "potential wet mass and ldmc wrong", flag))
 
+       # Anthoxanthum fix
+       clean_traits <- clean_traits |> 
+                  mutate(taxon = case_when(taxon == "Anthoxanthum odoratum" & siteID %in% c("Gudmedalen", "Skjelingahaugen", "Ulvehaugen", "Liahovden", "Joasete") ~ "Anthoxanthum alpinum",
+                            taxon == "Anthoxanthum odoratum" & siteID == "Vikeland" & warming == "W" ~ "Anthoxanthum alpinum",
+                            taxon == "Anthoxanthum odoratum" & siteID == "Hogsete" ~ "Anthoxanthum odoratum",
+                            taxon == "Anthoxanthum odoratum" & siteID == "Vikeland" & warming == "A" ~ "Anthoxanthum odoratum",
+                            TRUE ~ taxon))
 
 }
 
