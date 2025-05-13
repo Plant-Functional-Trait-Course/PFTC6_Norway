@@ -35,6 +35,8 @@ other_code/*
 *.iso
 *.cdr
 *.tif
+*.pptx
+*.svg
 
 # MacOS nonsense
 .DS_Store
