@@ -188,7 +188,8 @@ clean_chem_traits <- function(leaf_traits_Incline){
     mutate(value = if_else(value %in% c("REPEAT", "Empty Cell"), NA_character_, value),
            value = as.numeric(value)) |>
     filter(!is.na(value)) |>
-    select(ID, site, trait, value, filename)
+    select(ID, site, trait, value, filename) |> 
+      mutate(merged = if_else(str_detect(ID, "_"), "merged", NA_character_))
 
 
   # Check IDs (all seem to be fine)
@@ -216,6 +217,8 @@ clean_chem_traits <- function(leaf_traits_Incline){
     separate(col = ID, into = c("ID1", "ID2", "ID3"), sep = "_") |>
     pivot_longer(cols = c(ID1, ID2, ID3), names_to = "nr", values_to = "ID") |>
     filter(!is.na(ID)) |>
+    # remove ind which was measuerd twice
+    tidylog::filter(ID_merged != "DLP7533") |> 
     tidylog::left_join(incline_id, by = "ID") |>
     mutate(project = if_else(siteID %in% c("Gudmedalen", "Skjelingahaugen", "Ulvehaugen"), "Incline", "3D")) |>
     tidylog::select(project, ID, ID_merged, date, siteID, elevation_m_asl, blockID, warming, individual_nr, species, trait, value, merged, flag)

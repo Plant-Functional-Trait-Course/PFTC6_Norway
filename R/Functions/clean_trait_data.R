@@ -358,6 +358,7 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
                                      ID == "DSE5104" ~ 3,
                                      ID == "GQW0555" ~ 3,
                                      ID == "INJ6310" ~ 1,
+                                     ID == "BLO2090" ~ 2,
                                      TRUE ~ individual_nr))
 
   ### Clean taxa names ----
