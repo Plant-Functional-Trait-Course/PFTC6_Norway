@@ -1,0 +1,52 @@
+---
+title: 'PFTC6 Authorship List'
+format: docx
+---
+
+**Authors:**  Vandvik Vigdis<sup><sup>¹,</sup>²</sup>, Halbritter H. R. Aud<sup><sup>¹,</sup>²</sup>, Macias-Fauria Marc<sup>³,</sup> Maitner S. Brian<sup>⁴,</sup> Michaletz T. Sean<sup><sup>⁵,</sup>⁶</sup>, Telford J. Richard<sup><sup>¹,</sup>²</sup>, Bison Nicole<sup>⁷,</sup> Chacon-Labella Julia<sup>⁸,</sup> Cotner Sehoya<sup>¹,</sup> Egelkraut Dagmar<sup>¹,</sup> Garen Josef<sup>⁷,</sup> Gaudard Joseph<sup><sup>¹,</sup>²</sup>, Geange Sonya<sup><sup>¹,</sup>²</sup>, Rosati A. Maria, Andersen A. Emil<sup>⁹,</sup> Ahler J. Sam<sup><sup>¹⁰,</sup>¹¹</sup>, Atkinson Joe<sup><sup>¹²,</sup>¹³</sup>, Baumane Marta<sup><sup>¹⁴,</sup>¹⁵</sup>, Bradler M. Pia<sup><sup>¹⁶,</sup>¹⁷</sup>, Dawson R. Hilary<sup><sup>¹⁸,</sup>¹⁹</sup>, Eckberg Julia<sup>²⁰,</sup> Elsy D. Alexander<sup>²¹,</sup> Erkelenz Joshua<sup>²²,</sup> Eshelman E. Susan<sup>²³,</sup> Guclu Coskun<sup>²⁴,</sup> Gullvåg Rebekka<sup>²⁵,</sup> Gya Ragnhild<sup><sup>¹,</sup>²</sup>, Hartford Sorrel, Hayden T. Meghan<sup>²⁶,</sup> Holle J. M. Mukhlish<sup>²⁷,</sup> Kullberg T. Alyssa<sup>²⁸,</sup> Lepley Kai<sup>²⁹,</sup> Correia Marta<sup>³⁰,</sup> Löwenstein E. Cora<sup>³¹,</sup> Maré Celesté<sup>³²,</sup> Mauki Dickson<sup>³³,</sup> Navarro Jocelyn<sup>³⁴,</sup> Oberholzer Barryette<sup>³⁵,</sup> Olivier Bernard<sup>³²,</sup> Olson N. Alyssa, Ray A. Courtenay<sup>³⁶,</sup> von Oppen Jonathan<sup><sup>³²,</sup>³⁷</sup>, Vorstenbosch Tom<sup>³⁸,</sup> Wang A. Jonathan<sup>³⁹,</sup> Enquist J. Brian<sup><sup>⁴⁰,</sup>⁴¹</sup>
+
+**Affiliations:**
+
+1. Department of Biological Sciences, University of Bergen, POBOX 7801 N-5020 Bergen, Norway
+2. Bjerknes Centre for Climate Research, University of Bergen, Bergen, Norway
+3. Scott Polar Research Institute, Universirty of Cambridge, Cambridge CB2 1ER, United Kingdom
+4. Department of Ecology and Evolutionary Biology, University of Arizona, AZ, USA
+5. Department of Botany, University of British Columbia, Vancouver, BC V6T 1Z4
+6. Biodiversity Research Centre, University of British Columbia, Vancouver, BC V6T 1Z4
+7. Department of Botany and Biodiversity Research Centre, University of British Columbia, Vancouver, BC V6T 1Z4
+8. Facultad de Ciencias. Departamento de Biología. Universidad Autonoma de Madrid. Calle Darwin, 2, 28049, Madrid.
+9. Climate Impacts Research Centre, Department of Ecology and Environmental Science, Umeå University, 901 87 Umeå, Sweden
+10. Department of Ecology and Evolutionary Biology, University of Colorado - Boulder, Boulder, CO USA
+11. Institute of Arctic and Alpine Research, University of Colorado - Boulder, Boulder, CO USA
+12. Center for Ecological Dynamics in a Novel Biosphere (ECONOVO), Department of Biology, Aarhus University, 8000 Aarhus C, Denmark
+13. Evolution & Ecology Research Centre, UNSW Sydney, Kensington, Australia, 2052
+14. Department of Biology, University of Copenhagen, Universitetsparken 4, Copenhagen, 2100, Denmark
+15. Department of Biology, Aarhus University, Ole Worms Allé 1, Aarhus, 8000, Denmark
+16. Institute of Ecology, Leuphana University of Lüneburg, Lüneburg, Germany
+17. Institute of General Ecology and Environmental Protection, TUD Dresden University of Technology, Tharandt, Germany
+18. Institute of Ecology and Evolution, University of Oregon, Eugene, OR, USA, 97401
+19. Research School of Biology, Australian National University, Canberra, ACT 2601, Australia
+20. Department of Ecology and Evolutionary Biology, University of Michigan, MI, USA
+21. Department of Environmental Systems Science, ETH Zürich, Zurich, Switzerland
+22. Department of Botany and Zoology, Masaryk University, Kamenice 753/5, Brno, Czech Republic
+23. Institute of Ecology and Evolution, School of Biological Sciences, The Univerity of Edinburgh, Ashworth Laboratories, Charlotte Auerbach Road, Edinburgh, EH9 3FL
+24. Department of Biological Sciences, Faculty of Science, The University of Hong Kong, Pok Fu Lam Road, Hong Kong SAR
+25. Department of Ecology and Environmental Science, Umeå University, 901 87 Umeå, Sweden
+26. Department of Ecology and Evolutionary Biology, University of Colorado, Boulder, Colorado, 80301, USA
+27. Faculty of Biology, Gadjah Mada University, DI Yogyakarta, 55281 Indonesia
+28. Department of Biology, University of Miami, Coral Gables, Florida, USA
+29. School of Geography, Development and Environment, University of Arizona, Tucson, Arizona 85721
+30. , Centre for Functional Ecology, University of Coimbra, Coimbra, Portugal.
+31. Institute of Forest Ecology, Department of Forest -and Soil Sciences, University of Natural Resources and Life Sciences, 1180 Vienna, Austria
+32. Section for Ecoinformatics and Biodiversity, Department of Biology, Aarhus University, DK-8000 Aarhus C, Denmark
+33. Senckenberg Biodiversity and Climate research center-Frankfurt ,Germany,
+34. Department of Ecology and Evolutionary Biology, University of Arizona, Tucson, Arizona, USA 85719
+35. Department of Forest Ecology and Management, SLU, Umeå, Sweden
+36. Department of Botany, University of Wyoming, 1000 E. University Ave., Laramie, Wyoming, 82017 USA
+37. Department of Environmental Sciences, University of Basel, CH-4056 Basel, Switzerland
+38. Department of Botany and Biodiversity Research, University of Vienna,
+1030 Vienna, Austria
+39. School of Biological Sciences, University of Utah, Salt Lake City, UT, 84112 USA
+40. Department of Ecology and Evolutionary Biology, University of Arizona, AZ, 85721 USA
+41. The Santa Fe Institute, Santa Fe, NM, 87501 USA
+

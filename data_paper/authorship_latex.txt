@@ -1,0 +1,44 @@
+\author{Vandvik Vigdis^{1},^{2}, Halbritter H. R. Aud^{1},^{2}, Macias-Fauria Marc^{3}, Maitner S. Brian^{4}, Michaletz T. Sean^{5},^{6}, Telford J. Richard^{1},^{2}, Bison Nicole^{7}, Chacon-Labella Julia^{8}, Cotner Sehoya^{1}, Egelkraut Dagmar^{1}, Garen Josef^{7}, Gaudard Joseph^{1},^{2}, Geange Sonya^{1},^{2}, Rosati A. Maria, Andersen A. Emil^{9}, Ahler J. Sam^{10},^{11}, Atkinson Joe^{12},^{13}, Baumane Marta^{14},^{15}, Bradler M. Pia^{16},^{17}, Dawson R. Hilary^{18},^{19}, Eckberg Julia^{20}, Elsy D. Alexander^{21}, Erkelenz Joshua^{22}, Eshelman E. Susan^{23}, Guclu Coskun^{24}, Gullvåg Rebekka^{25}, Gya Ragnhild^{1},^{2}, Hartford Sorrel, Hayden T. Meghan^{26}, Holle J. M. Mukhlish^{27}, Kullberg T. Alyssa^{28}, Lepley Kai^{29}, Correia Marta^{30}, Löwenstein E. Cora^{31}, Maré Celesté^{32}, Mauki Dickson^{33}, Navarro Jocelyn^{34}, Oberholzer Barryette^{35}, Olivier Bernard^{32}, Olson N. Alyssa, Ray A. Courtenay^{36}, von Oppen Jonathan^{32},^{37}, Vorstenbosch Tom^{38}, Wang A. Jonathan^{39}, Enquist J. Brian^{40},^{41}}
+
+\affil[1]{Department of Biological Sciences, University of Bergen, POBOX 7801 N-5020 Bergen, Norway}
+\affil[2]{Bjerknes Centre for Climate Research, University of Bergen, Bergen, Norway}
+\affil[3]{Scott Polar Research Institute, Universirty of Cambridge, Cambridge CB2 1ER, United Kingdom}
+\affil[4]{Department of Ecology and Evolutionary Biology, University of Arizona, AZ, USA}
+\affil[5]{Department of Botany, University of British Columbia, Vancouver, BC V6T 1Z4}
+\affil[6]{Biodiversity Research Centre, University of British Columbia, Vancouver, BC V6T 1Z4}
+\affil[7]{Department of Botany and Biodiversity Research Centre, University of British Columbia, Vancouver, BC V6T 1Z4}
+\affil[8]{Facultad de Ciencias. Departamento de Biología. Universidad Autonoma de Madrid. Calle Darwin, 2, 28049, Madrid.}
+\affil[9]{Climate Impacts Research Centre, Department of Ecology and Environmental Science, Umeå University, 901 87 Umeå, Sweden}
+\affil[10]{Department of Ecology and Evolutionary Biology, University of Colorado - Boulder, Boulder, CO USA}
+\affil[11]{Institute of Arctic and Alpine Research, University of Colorado - Boulder, Boulder, CO USA}
+\affil[12]{Center for Ecological Dynamics in a Novel Biosphere (ECONOVO), Department of Biology, Aarhus University, 8000 Aarhus C, Denmark}
+\affil[13]{Evolution & Ecology Research Centre, UNSW Sydney, Kensington, Australia, 2052}
+\affil[14]{Department of Biology, University of Copenhagen, Universitetsparken 4, Copenhagen, 2100, Denmark}
+\affil[15]{Department of Biology, Aarhus University, Ole Worms Allé 1, Aarhus, 8000, Denmark}
+\affil[16]{Institute of Ecology, Leuphana University of Lüneburg, Lüneburg, Germany}
+\affil[17]{Institute of General Ecology and Environmental Protection, TUD Dresden University of Technology, Tharandt, Germany}
+\affil[18]{Institute of Ecology and Evolution, University of Oregon, Eugene, OR, USA, 97401}
+\affil[19]{Research School of Biology, Australian National University, Canberra, ACT 2601, Australia}
+\affil[20]{Department of Ecology and Evolutionary Biology, University of Michigan, MI, USA}
+\affil[21]{Department of Environmental Systems Science, ETH Zürich, Zurich, Switzerland}
+\affil[22]{Department of Botany and Zoology, Masaryk University, Kamenice 753/5, Brno, Czech Republic}
+\affil[23]{Institute of Ecology and Evolution, School of Biological Sciences, The Univerity of Edinburgh, Ashworth Laboratories, Charlotte Auerbach Road, Edinburgh, EH9 3FL}
+\affil[24]{Department of Biological Sciences, Faculty of Science, The University of Hong Kong, Pok Fu Lam Road, Hong Kong SAR}
+\affil[25]{Department of Ecology and Environmental Science, Umeå University, 901 87 Umeå, Sweden}
+\affil[26]{Department of Ecology and Evolutionary Biology, University of Colorado, Boulder, Colorado, 80301, USA}
+\affil[27]{Faculty of Biology, Gadjah Mada University, DI Yogyakarta, 55281 Indonesia}
+\affil[28]{Department of Biology, University of Miami, Coral Gables, Florida, USA}
+\affil[29]{School of Geography, Development and Environment, University of Arizona, Tucson, Arizona 85721}
+\affil[30]{, Centre for Functional Ecology, University of Coimbra, Coimbra, Portugal.}
+\affil[31]{Institute of Forest Ecology, Department of Forest -and Soil Sciences, University of Natural Resources and Life Sciences, 1180 Vienna, Austria}
+\affil[32]{Section for Ecoinformatics and Biodiversity, Department of Biology, Aarhus University, DK-8000 Aarhus C, Denmark}
+\affil[33]{Senckenberg Biodiversity and Climate research center-Frankfurt ,Germany,}
+\affil[34]{Department of Ecology and Evolutionary Biology, University of Arizona, Tucson, Arizona, USA 85719}
+\affil[35]{Department of Forest Ecology and Management, SLU, Umeå, Sweden}
+\affil[36]{Department of Botany, University of Wyoming, 1000 E. University Ave., Laramie, Wyoming, 82017 USA}
+\affil[37]{Department of Environmental Sciences, University of Basel, CH-4056 Basel, Switzerland}
+\affil[38]{Department of Botany and Biodiversity Research, University of Vienna,
+1030 Vienna, Austria}
+\affil[39]{School of Biological Sciences, University of Utah, Salt Lake City, UT, 84112 USA}
+\affil[40]{Department of Ecology and Evolutionary Biology, University of Arizona, AZ, 85721 USA}
+\affil[41]{The Santa Fe Institute, Santa Fe, NM, 87501 USA}
