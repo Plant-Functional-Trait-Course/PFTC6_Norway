@@ -592,7 +592,7 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
     tidylog::mutate(blockID = if_else(ID == "HON7844", "10", blockID),
                     grazing = if_else(ID == "HON7844", "N", grazing),
                     Nlevel = if_else(ID == "HON7844", 2, Nlevel),
-                    individual_nr = if_else(ID == "", 5, individual_nr),
+                    individual_nr = if_else(ID == "HON7844", 5, individual_nr),
                     comment = if_else(ID == "HON7844", "blockID, grazing imputed from missing combinations", comment)) |>
 
     # make table long
@@ -626,9 +626,9 @@ clean_traits <- function(raw_traits, traits_comments, dry_mass_clean, leaf_area_
        # Anthoxanthum fix
        clean_traits <- clean_traits |> 
                   mutate(taxon = case_when(taxon == "Anthoxanthum odoratum" & siteID %in% c("Gudmedalen", "Skjelingahaugen", "Ulvehaugen", "Liahovden", "Joasete") ~ "Anthoxanthum alpinum",
-                            taxon == "Anthoxanthum odoratum" & siteID == "Vikeland" & warming == "W" ~ "Anthoxanthum alpinum",
+                            taxon == "Anthoxanthum odoratum" & siteID == "Vikesland" & warming == "W" ~ "Anthoxanthum alpinum",
                             taxon == "Anthoxanthum odoratum" & siteID == "Hogsete" ~ "Anthoxanthum odoratum",
-                            taxon == "Anthoxanthum odoratum" & siteID == "Vikeland" & warming == "A" ~ "Anthoxanthum odoratum",
+                            taxon == "Anthoxanthum odoratum" & siteID == "Vikesland" & warming == "A" ~ "Anthoxanthum odoratum",
                             TRUE ~ taxon))
 
 }
