@@ -4,7 +4,7 @@
 
 # clean chem traits
 
-clean_chem_traits <- function(leaf_traits_Incline){
+clean_chem_traits <- function(leaf_traits_Incline, leaf_traits_3D){
 
   ############################################################################
   #### PHOSPHORUS DATA ####
@@ -45,6 +45,7 @@ clean_chem_traits <- function(leaf_traits_Incline){
   # all_codes <- get_PFTC_envelope_codes(seed = 49, as.3.5 = FALSE)
   #
   # p |>
+  #   select(ID) |>
   #   separate(col = ID, into = c("ID1", "ID2", "ID3"), sep = "_") |>
   #   #filter(!is.na(ID1)) |>
   #   anti_join(all_codes, by = c("ID1" = "hashcode"))
@@ -123,12 +124,12 @@ clean_chem_traits <- function(leaf_traits_Incline){
   Corrected_P <- OriginalValues %>%
     filter(!ID %in% c("red")) %>%
     tidylog::left_join(CorrectionFactor, by = c("filename")) %>%
-    mutate(p_conc_corrected = p_conc * correction_factor) %>%
+    mutate(p_conc_corrected = p_conc * correction_factor) %>% 
     # Calculate mean, sd, coefficient of variation
     group_by(filename, ID) %>%
     summarise(p_percent = mean(p_conc_corrected, na.rm = TRUE),
               p_sd = sd(p_conc_corrected, na.rm = TRUE),
-              p_coeff_var = p_sd / p_mean,
+              p_coeff_var = p_sd / p_percent,
               nrep = n()) %>%
     tidylog::distinct() |>
     ungroup() |>
@@ -175,9 +176,9 @@ clean_chem_traits <- function(leaf_traits_Incline){
   #   separate(col = ID, into = c("ID1", "ID2", "ID3"), sep = "_") |>
   #   pivot_longer(cols = c(ID1, ID2, ID3), names_to = "nr", values_to = "ID") |>
   #   filter(!is.na(ID)) |>
-  #   anti_join(valid_codes, by = c("ID" = "hashcode"))
+  #   anti_join(all_codes, by = c("ID" = "hashcode"))
 
-  #   valid_codes |> filter(str_detect(hashcode, "0320"))
+  #   all_codes |> filter(str_detect(hashcode, "0320"))
 
   # drop identical duplicates that only differ by source filename
   cn <- cn |>
@@ -219,19 +220,24 @@ clean_chem_traits <- function(leaf_traits_Incline){
               .groups = "drop") |>
     tidylog::filter(n_records > 1, n_distinct_values > 1)
 
-  # verify that ID/traits with repeats now appear in cn_isotopes (i.e., got a value)
-  repeat_status <- cn |>
-    pivot_longer(cols = c(c_percent:d13c), names_to = "trait", values_to = "value_raw") |>
-    mutate(value = if_else(value_raw %in% c("REPEAT", "Empty Cell"), NA_character_, value_raw),
-           value = as.numeric(value)) |>
-    group_by(ID, trait) |>
-    summarise(had_repeat = any(value_raw %in% c("REPEAT", "Empty Cell")),
-              .groups = "drop")
-
-  repeat_without_final_value <- repeat_status |>
-    filter(had_repeat) |>
-    anti_join(cn_isotopes |> distinct(ID, trait), by = c("ID", "trait")) |> print(n = Inf)
-
+repeat_status <- cn |>
+  pivot_longer(cols = c(c_percent:d13c), names_to = "trait", values_to = "value_raw") |>
+  group_by(ID, trait) |>
+  summarise(
+    had_repeat = any(value_raw %in% c("REPEAT", "Empty Cell")),
+    has_replacement = any(
+      !value_raw %in% c("REPEAT", "Empty Cell", "") &
+        !is.na(suppressWarnings(as.numeric(value_raw)))
+    ),
+    .groups = "drop"
+  )
+# Should be empty — replacement exists but pipeline dropped it
+repeat_lost_in_pipeline <- repeat_status |>
+  filter(had_repeat, has_replacement) |>
+  anti_join(cn_isotopes |> distinct(ID, trait), by = c("ID", "trait"))
+# Informational — never measured, only repeats
+repeat_no_replacement_in_raw <- repeat_status |>
+  filter(had_repeat, !has_replacement)
 
   # Check IDs (all seem to be fine)
   #   all_codes <- get_PFTC_envelope_codes(seed = 49, as.3.5 = FALSE)
@@ -253,15 +259,28 @@ clean_chem_traits <- function(leaf_traits_Incline){
   incline_id <- leaf_traits_Incline |>
     distinct(ID, date, siteID, elevation_m_asl, blockID, warming, species, individual_nr)
 
-  cnp_data <- bind_rows(cn_isotopes, Corrected_P) |>
+  threed_id <- leaf_traits_3D |>
+    distinct(ID, date, siteID, elevation_m_asl, blockID, warming, species, individual_nr)
+
+  cnp_base <- bind_rows(cn_isotopes, Corrected_P) |>
     mutate(ID_merged = ID) |>
     separate(col = ID, into = c("ID1", "ID2", "ID3"), sep = "_") |>
     pivot_longer(cols = c(ID1, ID2, ID3), names_to = "nr", values_to = "ID") |>
     filter(!is.na(ID)) |>
     # remove ind which was measuerd twice
-    tidylog::filter(ID_merged != "DLP7533") |> 
+    tidylog::filter(ID_merged != "DLP7533")
+
+  cnp_incline <- cnp_base |>
+    filter(ID %in% incline_id$ID, !ID %in% threed_id$ID) |>
     tidylog::left_join(incline_id, by = "ID") |>
-    mutate(project = if_else(siteID %in% c("Gudmedalen", "Skjelingahaugen", "Ulvehaugen"), "Incline", "3D")) |>
+    mutate(project = "Incline")
+
+  cnp_3d <- cnp_base |>
+    filter(ID %in% threed_id$ID, !ID %in% incline_id$ID) |>
+    tidylog::left_join(threed_id, by = "ID") |>
+    mutate(project = "3D")
+
+  cnp_data <- bind_rows(cnp_incline, cnp_3d) |>
     tidylog::select(project, ID, ID_merged, date, siteID, elevation_m_asl, blockID, warming, individual_nr, species, trait, value, merged, flag)
 
   # cnp_data |>
